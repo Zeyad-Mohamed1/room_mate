@@ -1,36 +1,88 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# RoommateFinder
+
+RoommateFinder is a web application similar to Airbnb but focused on finding roommates and rooms to rent. It allows users to list their properties, search for available rooms, and connect with potential roommates.
+
+## Features
+
+- **User Authentication**: Register and login functionality
+- **Property Listings**: Browse through available rooms and houses
+- **Property Details**: View detailed information about properties
+- **Add Property**: Multi-step form to add new properties
+- **Search**: Search for properties based on location, price, and amenities
+- **Responsive Design**: Works on desktop and mobile devices
+
+## Technologies Used
+
+- **Next.js**: React framework for building the frontend
+- **TypeScript**: For type safety and better developer experience
+- **Tailwind CSS**: For styling the application
+- **React Hooks**: For state management
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Node.js (v18 or later)
+- npm or pnpm
+
+### Installation
+
+1. Clone the repository:
+   ```
+   git clone https://github.com/yourusername/roommate-finder.git
+   cd roommate-finder
+   ```
+
+2. Install dependencies:
+   ```
+   npm install
+   # or
+   pnpm install
+   ```
+
+3. Run the development server:
+   ```
+   npm run dev
+   # or
+   pnpm dev
+   ```
+
+4. Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
+
+## Project Structure
+
+```
+roommate-finder/
+├── public/              # Static assets
+├── src/
+│   ├── app/             # Next.js app directory
+│   │   ├── property/    # Property detail pages
+│   │   ├── layout.tsx   # Root layout
+│   │   └── page.tsx     # Home page
+│   └── components/      # React components
+│       ├── Header.tsx   # Header component
+│       ├── PropertyCard.tsx # Property card component
+│       ├── LoginModal.tsx # Login modal
+│       ├── RegisterModal.tsx # Register modal
+│       └── AddPropertyModal.tsx # Add property modal
+├── package.json         # Project dependencies
+└── README.md           # Project documentation
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Future Enhancements
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Backend Integration**: Connect to a backend API for data persistence
+- **User Profiles**: Allow users to create and manage their profiles
+- **Messaging System**: Enable communication between users
+- **Reviews and Ratings**: Allow users to leave reviews for properties and owners
+- **Payment Integration**: Process payments for deposits and rent
+- **Notifications**: Send notifications for new messages and property updates
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## License
 
-## Learn More
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-To learn more about Next.js, take a look at the following resources:
+## Acknowledgments
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Inspired by Airbnb and other roommate finding platforms
+- Built with Next.js and Tailwind CSS
