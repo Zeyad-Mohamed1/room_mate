@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Header from '../components/Header';
 import PropertyCard from '../components/PropertyCard';
 import AddPropertyModal from '../components/AddPropertyModal';
+import WelcomeDialog from '@/components/WelcomeDialog';
 
 // Sample data for properties
 const sampleProperties = [
@@ -16,6 +17,10 @@ const sampleProperties = [
     roomType: 'single' as const,
     imageUrl: '/images/properties/studio-apartment.jpg',
     amenities: ['WiFi', 'Air Conditioning', 'Furnished', 'Parking'],
+    persons: 2,
+    bathrooms: 1,
+    genderPreference: 'any' as const,
+    countryCode: 'us',
   },
   {
     id: '2',
@@ -26,6 +31,10 @@ const sampleProperties = [
     roomType: 'mixed' as const,
     imageUrl: '/images/properties/modern-house.jpg',
     amenities: ['WiFi', 'Air Conditioning', 'Furnished', 'Parking', 'Garden'],
+    persons: 4,
+    bathrooms: 2,
+    genderPreference: 'female' as const,
+    countryCode: 'us',
   },
   {
     id: '3',
@@ -36,6 +45,10 @@ const sampleProperties = [
     roomType: 'single' as const,
     imageUrl: '/images/properties/penthouse.jpg',
     amenities: ['WiFi', 'Air Conditioning', 'Furnished', 'Parking', 'Gym Access', 'Pool'],
+    persons: 1,
+    bathrooms: 1,
+    genderPreference: 'male' as const,
+    countryCode: 'us',
   },
   {
     id: '4',
@@ -46,31 +59,23 @@ const sampleProperties = [
     roomType: 'mixed' as const,
     imageUrl: '/images/properties/shared-apartment.jpg',
     amenities: ['WiFi', 'Furnished', 'Near Public Transport'],
+    persons: 3,
+    bathrooms: 2,
+    genderPreference: 'any' as const,
+    countryCode: 'us',
   },
 ];
 
 export default function Home() {
-  const [isAddPropertyModalOpen, setIsAddPropertyModalOpen] = useState(false);
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
+      <WelcomeDialog />
       
-      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-          <div className="max-w-2xl">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gradient mb-2">Find Your Perfect Roommate</h1>
-            <p className="text-gray-600 text-sm sm:text-base">Discover rooms and houses that match your preferences</p>
-          </div>
-          <button
-            onClick={() => setIsAddPropertyModalOpen(true)}
-            className="w-full md:w-auto px-6 py-3 bg-gradient text-white rounded-full hover:opacity-90 transition-opacity font-medium shadow-soft flex items-center justify-center gap-2"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Add Property
-          </button>
+      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 pb-24 md:pb-12">
+        <div className="mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gradient mb-2">Find Your Perfect Roommate</h1>
+          <p className="text-gray-600 text-sm sm:text-base">Discover rooms and houses that match your preferences</p>
         </div>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
@@ -85,6 +90,10 @@ export default function Home() {
               roomType={property.roomType}
               imageUrl={property.imageUrl}
               amenities={property.amenities}
+              persons={property.persons}
+              bathrooms={property.bathrooms}
+              genderPreference={property.genderPreference}
+              countryCode={property.countryCode}
             />
           ))}
         </div>
@@ -155,10 +164,6 @@ export default function Home() {
           </div>
         </div>
       </footer>
-      
-      {isAddPropertyModalOpen && (
-        <AddPropertyModal onClose={() => setIsAddPropertyModalOpen(false)} />
-      )}
     </div>
   );
 }

@@ -2,10 +2,13 @@ import { useState } from 'react';
 import Link from 'next/link';
 import LoginModal from './LoginModal';
 import RegisterModal from './RegisterModal';
+import AddPropertyModal from './AddPropertyModal';
+import { Search, Menu, X, Plus } from 'lucide-react';
 
 const Header = () => {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+  const [isAddPropertyModalOpen, setIsAddPropertyModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchVisible, setIsSearchVisible] = useState(false);
@@ -55,11 +58,9 @@ const Header = () => {
               />
               <button
                 type="submit"
-                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-primary transition-colors"
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-primary transition-colors cursor-pointer"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
+                <Search className="h-5 w-5" />
               </button>
             </div>
           </form>
@@ -68,15 +69,22 @@ const Header = () => {
           <div className="hidden md:flex items-center space-x-3">
             <button
               onClick={() => setIsLoginModalOpen(true)}
-              className="px-4 py-2 text-primary border border-primary rounded-full hover:bg-gradient-subtle transition-colors font-medium text-sm"
+              className="px-4 py-2 text-primary border border-primary rounded-full hover:bg-gradient-subtle transition-colors font-medium text-sm cursor-pointer"
             >
               Login
             </button>
             <button
               onClick={() => setIsRegisterModalOpen(true)}
-              className="px-4 py-2 bg-gradient text-white rounded-full hover:opacity-90 transition-opacity font-medium shadow-soft text-sm"
+              className="px-4 py-2 bg-gradient text-white rounded-full hover:opacity-90 transition-opacity font-medium shadow-soft text-sm cursor-pointer"
             >
               Register
+            </button>
+            <button
+              onClick={() => setIsAddPropertyModalOpen(true)}
+              className="px-4 py-2 bg-gradient text-white rounded-full hover:opacity-90 transition-opacity font-medium shadow-soft text-sm flex items-center gap-2 cursor-pointer"
+            >
+              <Plus className="h-4 w-4" />
+              Add Property
             </button>
           </div>
 
@@ -84,26 +92,20 @@ const Header = () => {
           <div className="flex md:hidden items-center space-x-3">
             <button
               onClick={toggleSearch}
-              className="p-2 text-gray-600 hover:text-primary transition-colors"
+              className="p-2 text-gray-600 hover:text-primary transition-colors cursor-pointer"
               aria-label="Search"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+              <Search className="h-6 w-6" />
             </button>
             <button
               onClick={toggleMobileMenu}
-              className="p-2 text-gray-600 hover:text-primary transition-colors"
+              className="p-2 text-gray-600 hover:text-primary transition-colors cursor-pointer"
               aria-label="Menu"
             >
               {isMobileMenuOpen ? (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <X className="h-6 w-6" />
               ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
+                <Menu className="h-6 w-6" />
               )}
             </button>
           </div>
@@ -124,11 +126,9 @@ const Header = () => {
                 />
                 <button
                   type="submit"
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-primary transition-colors"
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-primary transition-colors cursor-pointer"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
+                  <Search className="h-5 w-5" />
                 </button>
               </div>
             </form>
@@ -145,7 +145,7 @@ const Header = () => {
                     setIsLoginModalOpen(true);
                     setIsMobileMenuOpen(false);
                   }}
-                  className="w-full px-4 py-2.5 text-primary border border-primary rounded-full hover:bg-gradient-subtle transition-colors font-medium text-sm text-center"
+                  className="w-full px-4 py-2.5 text-primary border border-primary rounded-full hover:bg-gradient-subtle transition-colors font-medium text-sm text-center cursor-pointer"
                 >
                   Login
                 </button>
@@ -154,24 +154,46 @@ const Header = () => {
                     setIsRegisterModalOpen(true);
                     setIsMobileMenuOpen(false);
                   }}
-                  className="w-full px-4 py-2.5 bg-gradient text-white rounded-full hover:opacity-90 transition-opacity font-medium shadow-soft text-sm text-center"
+                  className="w-full px-4 py-2.5 bg-gradient text-white rounded-full hover:opacity-90 transition-opacity font-medium shadow-soft text-sm text-center cursor-pointer"
                 >
                   Register
                 </button>
+                <button
+                  onClick={() => {
+                    setIsAddPropertyModalOpen(true);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="w-full px-4 py-2.5 bg-gradient text-white rounded-full hover:opacity-90 transition-opacity font-medium shadow-soft text-sm text-center flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Property
+                </button>
               </div>
-              
+              <div className="border-t border-gray-100 pt-4">
+                <nav className="flex flex-col space-y-2">
+                  <Link href="/" className="text-gray-700 hover:text-primary transition-colors py-1 cursor-pointer">
+                    Home
+                  </Link>
+                  <Link href="/properties" className="text-gray-700 hover:text-primary transition-colors py-1 cursor-pointer">
+                    Properties
+                  </Link>
+                  <Link href="/about" className="text-gray-700 hover:text-primary transition-colors py-1 cursor-pointer">
+                    About Us
+                  </Link>
+                  <Link href="/contact" className="text-gray-700 hover:text-primary transition-colors py-1 cursor-pointer">
+                    Contact
+                  </Link>
+                </nav>
+              </div>
             </div>
           </div>
         )}
       </div>
 
       {/* Modals */}
-      {isLoginModalOpen && (
-        <LoginModal onClose={() => setIsLoginModalOpen(false)} />
-      )}
-      {isRegisterModalOpen && (
-        <RegisterModal onClose={() => setIsRegisterModalOpen(false)} />
-      )}
+      {isLoginModalOpen && <LoginModal onClose={() => setIsLoginModalOpen(false)} />}
+      {isRegisterModalOpen && <RegisterModal onClose={() => setIsRegisterModalOpen(false)} />}
+      {isAddPropertyModalOpen && <AddPropertyModal onClose={() => setIsAddPropertyModalOpen(false)} />}
     </header>
   );
 };
