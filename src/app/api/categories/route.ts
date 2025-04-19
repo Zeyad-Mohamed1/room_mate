@@ -1,15 +1,31 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const { searchParams } = new URL(req.url);
+    const search = searchParams.get("search") || "";
+
     const categories = await prisma.category.findMany({
+      where: {
+        name: {
+          contains: search,
+          mode: "insensitive",
+        },
+      },
       orderBy: {
         name: "asc",
       },
+      include: {
+        _count: {
+          select: {
+            properties: true,
+          },
+        },
+      },
     });
 
-    return NextResponse.json(categories);
+    return NextResponse.json({ categories });
   } catch (error) {
     console.error("Error fetching categories:", error);
     return NextResponse.json(
@@ -26,6 +42,23 @@ export async function POST(req: Request) {
     if (!name) {
       return NextResponse.json(
         { error: "Category name is required" },
+        { status: 400 }
+      );
+    }
+
+    // Check if category with the same name already exists
+    const existingCategory = await prisma.category.findFirst({
+      where: {
+        name: {
+          equals: name,
+          mode: "insensitive",
+        },
+      },
+    });
+
+    if (existingCategory) {
+      return NextResponse.json(
+        { error: "A category with this name already exists" },
         { status: 400 }
       );
     }

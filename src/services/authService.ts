@@ -84,7 +84,7 @@ export const authService = {
           occupation: session.user.occupation,
           smoker: session.user.smoker,
           image: session.user.image || "",
-          isAdmin: session.user.isAdmin,
+          isAdmin: session.user.isAdmin || false,
         });
       }
 

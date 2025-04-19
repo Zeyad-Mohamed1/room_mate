@@ -1,20 +1,20 @@
 import { Suspense } from "react";
 import PageHeader from "@/components/dashboard/PageHeader";
-import UserTableWrapper from "./components/UserTableWrapper";
+import CategoryTableWrapper from "./components/CategoryTableWrapper";
 
-export default function UsersPage() {
+export default function CategoriesPage() {
   return (
     <div className="space-y-6">
-      <PageHeader title="Users Management" />
+      <PageHeader title="Categories Management" />
 
-      <Suspense fallback={<UserTableSkeleton />}>
-        <UserTableWrapper />
+      <Suspense fallback={<CategoryTableSkeleton />}>
+        <CategoryTableWrapper />
       </Suspense>
     </div>
   );
 }
 
-function UserTableSkeleton() {
+function CategoryTableSkeleton() {
   return (
     <div className="space-y-4">
       {/* Search Skeleton */}

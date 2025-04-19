@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -53,7 +47,7 @@ model Notification {
 
 model Category {
   id         String     @id @default(uuid())
-  name       String
+  name       String     @unique
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
   properties Property[]
@@ -62,10 +56,13 @@ model Category {
 model Property {
   id                              String       @id @default(uuid())
   title                           String?
-  slug                            String?
+  slug                            String?      @unique
   images                          String[]
   video                           String?
   city                            String?
+  country                         String?
+  address                         String?
+  description                     String?
   latitude                        String?
   longitude                       String?
   type                            PropertyType @default(house)
@@ -96,7 +93,6 @@ model Property {
   trialPeriod                     Boolean      @default(false)
   goodForForeigners               Boolean      @default(false)
   rating                          Float        @default(0)
-  country                         String?
   comments                        Comment[]
   termsAndConditions              String?
   createdAt                       DateTime     @default(now())

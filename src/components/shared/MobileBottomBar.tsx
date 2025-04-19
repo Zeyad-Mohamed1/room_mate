@@ -4,6 +4,7 @@ import { MessageSquare, Plus, Bell, Heart, FileText } from "lucide-react";
 import AddPropertyModal from "./AddPropertyModal";
 import { useUserStore } from "@/store/useUserStore";
 import { create } from "zustand";
+import { usePathname } from "next/navigation";
 
 // Create a shared store for tab state between Header and MobileBottomBar
 interface TabState {
@@ -21,9 +22,13 @@ const MobileBottomBar = () => {
   const [isAddPropertyModalOpen, setIsAddPropertyModalOpen] = useState(false);
   const activeTab = useTabStore((state) => state.activeTab);
   const setActiveTab = useTabStore((state) => state.setActiveTab);
+  const pathname = usePathname();
 
-  // If not authenticated, don't render the bottom bar
-  if (!isAuthenticated) {
+  // Check if current path is admin dashboard
+  const isAdminDashboard = pathname?.includes("/dashboard");
+
+  // If not authenticated or in admin dashboard, don't render the bottom bar
+  if (!isAuthenticated || isAdminDashboard) {
     return null;
   }
 

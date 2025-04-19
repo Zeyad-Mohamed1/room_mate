@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from "react";
 import { authService } from "@/services/authService";
 import { toast } from "react-hot-toast";

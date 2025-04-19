@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from "react";
 import RegisterStep1 from "./registration/RegisterStep1";
 import RegisterStep2 from "./registration/RegisterStep2";

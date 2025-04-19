@@ -14,7 +14,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const userId = session.user.id;
+    const user = await prisma.user.findUnique({
+      where: {
+        email: session.user.email || "",
+      },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const userId = user.id;
     const body = await req.json();
 
     // Extract property data from request body
@@ -48,6 +58,13 @@ export async function POST(req: NextRequest) {
       termsAndConditions,
       images,
       categoryId,
+      country,
+      address,
+      description,
+      latitude,
+      longitude,
+      genderRequired,
+      roomsToComplete,
     } = body;
 
     // Basic validation
@@ -100,6 +117,13 @@ export async function POST(req: NextRequest) {
         goodForForeigners: goodForForeigners || false,
         termsAndConditions,
         images: images || [],
+        latitude,
+        longitude,
+        genderRequired,
+        roomsToComplete,
+        country,
+        address,
+        description,
         owner: {
           connect: { id: userId },
         },

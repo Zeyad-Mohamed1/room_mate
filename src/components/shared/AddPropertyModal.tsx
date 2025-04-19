@@ -2,6 +2,29 @@
 import { useState, useEffect } from "react";
 import { toast } from "react-hot-toast";
 import axios from "axios";
+import ReactCountryFlag from "react-country-flag";
+import dynamic from "next/dynamic";
+import { ComponentType } from "react";
+import { Loader2 } from "lucide-react";
+
+// Define the PropertyMapProps interface
+interface PropertyMapProps {
+  initialPosition: [number, number];
+  onLocationSelect: (lat: number, lng: number) => void;
+}
+
+// Import Leaflet dynamically to avoid SSR issues
+const MapWithNoSSR: ComponentType<PropertyMapProps> = dynamic(
+  () => import("./PropertyMap"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-64 flex items-center justify-center bg-gray-100 rounded-lg">
+        <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    ),
+  }
+);
 
 interface AddPropertyModalProps {
   onClose: () => void;
@@ -16,23 +39,29 @@ type RentTime =
   | "quarterly"
   | "semiannual"
   | "annually";
+type Gender = "male" | "female" | "any";
 
 interface PropertyFormData {
   title: string;
   type: PropertyType;
   roomType: RoomType;
   city: string;
+  country: string;
+  address: string;
+  description: string;
   price: string;
   rentTime: RentTime;
   paymentTime: RentTime;
   totalRooms: string;
   availableRooms: string;
+  roomsToComplete: string;
   size: string;
   floor: string;
   bathrooms: string;
   separatedBathroom: boolean;
   residentsCount: string;
   availablePersons: string;
+  gender: Gender;
   priceIncludeWaterAndElectricity: boolean;
   includeFurniture: boolean;
   airConditioning: boolean;
@@ -44,14 +73,36 @@ interface PropertyFormData {
   elevator: boolean;
   trialPeriod: boolean;
   goodForForeigners: boolean;
+  allowSmoking: boolean;
   termsAndConditions: string;
   images: File[];
   categoryId: string;
+  latitude: string;
+  longitude: string;
 }
 
 interface FormErrors {
   [key: string]: string;
 }
+
+// Define country coordinates mapping
+const countryCoordinates: Record<string, [number, number]> = {
+  US: [37.0902, -95.7129], // USA
+  GB: [55.3781, -3.436], // UK
+  CA: [56.1304, -106.3468], // Canada
+  AU: [-25.2744, 133.7751], // Australia
+  DE: [51.1657, 10.4515], // Germany
+  FR: [46.2276, 2.2137], // France
+  JP: [36.2048, 138.2529], // Japan
+  CN: [35.8617, 104.1954], // China
+  IN: [20.5937, 78.9629], // India
+  BR: [-14.235, -51.9253], // Brazil
+  AE: [23.4241, 53.8478], // UAE
+  SA: [23.8859, 45.0792], // Saudi Arabia
+  EG: [26.8206, 30.8025], // Egypt
+  TR: [38.9637, 35.2433], // Turkey
+  RU: [61.524, 105.3188], // Russia
+};
 
 const AddPropertyModal = ({ onClose }: AddPropertyModalProps) => {
   const [step, setStep] = useState(1);
@@ -60,17 +111,22 @@ const AddPropertyModal = ({ onClose }: AddPropertyModalProps) => {
     type: "house",
     roomType: "single",
     city: "",
+    country: "",
+    address: "",
+    description: "",
     price: "",
     rentTime: "monthly",
     paymentTime: "monthly",
     totalRooms: "",
     availableRooms: "",
+    roomsToComplete: "",
     size: "",
     floor: "",
     bathrooms: "",
     separatedBathroom: false,
     residentsCount: "",
     availablePersons: "",
+    gender: "any",
     priceIncludeWaterAndElectricity: false,
     includeFurniture: false,
     airConditioning: false,
@@ -82,9 +138,12 @@ const AddPropertyModal = ({ onClose }: AddPropertyModalProps) => {
     elevator: false,
     trialPeriod: false,
     goodForForeigners: false,
+    allowSmoking: false,
     termsAndConditions: "",
     images: [],
     categoryId: "1",
+    latitude: "",
+    longitude: "",
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
@@ -99,11 +158,14 @@ const AddPropertyModal = ({ onClose }: AddPropertyModalProps) => {
     const fetchCategories = async () => {
       try {
         const response = await axios.get("/api/categories");
-        setCategories(response.data);
+        setCategories(response.data?.categories);
 
         // Set default category if available
-        if (response.data.length > 0) {
-          setFormData((prev) => ({ ...prev, categoryId: response.data[0].id }));
+        if (response.data?.categories.length > 0) {
+          setFormData((prev) => ({
+            ...prev,
+            categoryId: response.data?.categories[0].id,
+          }));
         }
       } catch (error) {
         console.error("Error fetching categories:", error);
@@ -113,6 +175,16 @@ const AddPropertyModal = ({ onClose }: AddPropertyModalProps) => {
     fetchCategories();
   }, []);
 
+  // Set totalRooms to 1 when property type is "room"
+  useEffect(() => {
+    if (formData.type === "room") {
+      setFormData((prev) => ({
+        ...prev,
+        totalRooms: "1",
+      }));
+    }
+  }, [formData.type]);
+
   // Validate form based on current step
   const validateStep = (stepNumber: number): boolean => {
     const newErrors: FormErrors = {};
@@ -121,8 +193,18 @@ const AddPropertyModal = ({ onClose }: AddPropertyModalProps) => {
       if (!formData.title.trim())
         newErrors.title = "Property title is required";
       if (!formData.city.trim()) newErrors.city = "City is required";
+      if (!formData.country) newErrors.country = "Country is required";
+      if (!formData.address.trim()) newErrors.address = "Address is required";
+      if (formData.type === "room" && !formData.roomType) {
+        newErrors.roomType = "Room type is required";
+      }
+      // Validate location
+      if (!formData.latitude || !formData.longitude) {
+        newErrors.location = "Please select a location on the map";
+      }
     } else if (stepNumber === 2) {
       if (!formData.price.trim()) newErrors.price = "Price is required";
+      if (!formData.gender) newErrors.gender = "Gender preference is required";
       if (formData.totalRooms && isNaN(Number(formData.totalRooms))) {
         newErrors.totalRooms = "Total rooms must be a number";
       }
@@ -183,18 +265,35 @@ const AddPropertyModal = ({ onClose }: AddPropertyModalProps) => {
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      const files = Array.from(e.target.files);
-      setFormData({ ...formData, images: files });
+      const newFiles = Array.from(e.target.files);
+      const updatedImages = [...formData.images, ...newFiles];
+      setFormData({ ...formData, images: updatedImages });
 
-      // Create preview URLs for the images
-      const previews = files.map((file) => URL.createObjectURL(file));
-      setPreviewImages(previews);
+      // Create preview URLs for the new images
+      const newPreviews = newFiles.map((file) => URL.createObjectURL(file));
+      setPreviewImages([...previewImages, ...newPreviews]);
 
       // Clear error when user selects images
       if (errors.images) {
         setErrors({ ...errors, images: "" });
       }
+
+      // Reset the input value to allow selecting the same file again
+      e.target.value = "";
     }
+  };
+
+  // Remove specific image
+  const removeImage = (index: number) => {
+    const newImages = [...formData.images];
+    newImages.splice(index, 1);
+    setFormData({ ...formData, images: newImages });
+
+    // Also remove the preview
+    const newPreviews = [...previewImages];
+    URL.revokeObjectURL(newPreviews[index]); // Clean up the URL
+    newPreviews.splice(index, 1);
+    setPreviewImages(newPreviews);
   };
 
   // Clean up preview URLs when component unmounts
@@ -203,6 +302,35 @@ const AddPropertyModal = ({ onClose }: AddPropertyModalProps) => {
       previewImages.forEach((url) => URL.revokeObjectURL(url));
     };
   }, [previewImages]);
+
+  const handleLocationSelect = (lat: number, lng: number) => {
+    setFormData({
+      ...formData,
+      latitude: lat.toString(),
+      longitude: lng.toString(),
+    });
+
+    // Clear location error when user selects a location
+    if (errors.location) {
+      setErrors({ ...errors, location: "" });
+    }
+  };
+
+  // Handle country change to update map position
+  const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const countryCode = e.target.value;
+    handleInputChange(e);
+
+    // Update map position if country has known coordinates
+    if (countryCode && countryCoordinates[countryCode]) {
+      setFormData((prev) => ({
+        ...prev,
+        country: countryCode,
+        latitude: countryCoordinates[countryCode][0].toString(),
+        longitude: countryCoordinates[countryCode][1].toString(),
+      }));
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -244,17 +372,22 @@ const AddPropertyModal = ({ onClose }: AddPropertyModalProps) => {
         type: formData.type,
         roomType: formData.roomType,
         city: formData.city,
+        country: formData.country,
+        address: formData.address,
+        description: formData.description,
         price: formData.price,
         rentTime: formData.rentTime,
         paymentTime: formData.paymentTime,
         totalRooms: formData.totalRooms,
         availableRooms: formData.availableRooms,
+        roomsToComplete: formData.roomsToComplete,
         size: formData.size,
         floor: formData.floor,
         bathrooms: formData.bathrooms,
         separatedBathroom: formData.separatedBathroom,
         residentsCount: formData.residentsCount,
         availablePersons: formData.availablePersons,
+        genderRequired: formData.gender,
         priceIncludeWaterAndElectricity:
           formData.priceIncludeWaterAndElectricity,
         includeFurniture: formData.includeFurniture,
@@ -267,9 +400,12 @@ const AddPropertyModal = ({ onClose }: AddPropertyModalProps) => {
         elevator: formData.elevator,
         trialPeriod: formData.trialPeriod,
         goodForForeigners: formData.goodForForeigners,
+        allowSmoking: formData.allowSmoking,
         termsAndConditions: formData.termsAndConditions,
         categoryId: formData.categoryId,
         images: imageUrls,
+        latitude: formData.latitude,
+        longitude: formData.longitude,
       };
 
       // Submit the property data to API
@@ -329,180 +465,56 @@ const AddPropertyModal = ({ onClose }: AddPropertyModalProps) => {
 
             <div className="mb-4">
               <label
-                htmlFor="type"
+                htmlFor="country"
                 className="block text-gray-700 mb-2 font-medium"
               >
-                Property Type
+                Country
               </label>
-              <div className="grid grid-cols-2 gap-4">
-                <div
-                  className={`p-4 border rounded-lg cursor-pointer transition-all ${
-                    formData.type === "house"
-                      ? "border-primary bg-gradient-subtle"
-                      : "border-gray-300 hover:border-primary/50"
-                  }`}
-                  onClick={() => setFormData({ ...formData, type: "house" })}
-                >
-                  <div className="flex items-center justify-center mb-2">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className={`h-8 w-8 ${
-                        formData.type === "house"
-                          ? "text-primary"
-                          : "text-gray-500"
-                      }`}
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-                      />
-                    </svg>
+              <div className="relative">
+                {formData.country && (
+                  <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
+                    <ReactCountryFlag
+                      countryCode={formData.country}
+                      svg
+                      style={{
+                        width: "1.5em",
+                        height: "1.5em",
+                      }}
+                    />
                   </div>
-                  <p
-                    className={`text-center font-medium ${
-                      formData.type === "house"
-                        ? "text-primary"
-                        : "text-gray-700"
-                    }`}
-                  >
-                    House
-                  </p>
-                </div>
-                <div
-                  className={`p-4 border rounded-lg cursor-pointer transition-all ${
-                    formData.type === "room"
-                      ? "border-primary bg-gradient-subtle"
-                      : "border-gray-300 hover:border-primary/50"
-                  }`}
-                  onClick={() => setFormData({ ...formData, type: "room" })}
+                )}
+                <select
+                  id="country"
+                  name="country"
+                  className={`w-full ${
+                    formData.country ? "pl-12" : "px-4"
+                  } py-3 border ${
+                    errors.country ? "border-red-500" : "border-gray-300"
+                  } rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors`}
+                  value={formData.country}
+                  onChange={handleCountryChange}
                 >
-                  <div className="flex items-center justify-center mb-2">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className={`h-8 w-8 ${
-                        formData.type === "room"
-                          ? "text-primary"
-                          : "text-gray-500"
-                      }`}
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                      />
-                    </svg>
-                  </div>
-                  <p
-                    className={`text-center font-medium ${
-                      formData.type === "room"
-                        ? "text-primary"
-                        : "text-gray-700"
-                    }`}
-                  >
-                    Room
-                  </p>
-                </div>
+                  <option value="">Select a country</option>
+                  <option value="US">United States</option>
+                  <option value="GB">United Kingdom</option>
+                  <option value="CA">Canada</option>
+                  <option value="AU">Australia</option>
+                  <option value="DE">Germany</option>
+                  <option value="FR">France</option>
+                  <option value="JP">Japan</option>
+                  <option value="CN">China</option>
+                  <option value="IN">India</option>
+                  <option value="BR">Brazil</option>
+                  <option value="AE">United Arab Emirates</option>
+                  <option value="SA">Saudi Arabia</option>
+                  <option value="EG">Egypt</option>
+                  <option value="TR">Turkey</option>
+                  <option value="RU">Russia</option>
+                </select>
               </div>
-            </div>
-
-            <div className="mb-4">
-              <label
-                htmlFor="roomType"
-                className="block text-gray-700 mb-2 font-medium"
-              >
-                Room Type
-              </label>
-              <div className="grid grid-cols-2 gap-4">
-                <div
-                  className={`p-4 border rounded-lg cursor-pointer transition-all ${
-                    formData.roomType === "single"
-                      ? "border-primary bg-gradient-subtle"
-                      : "border-gray-300 hover:border-primary/50"
-                  }`}
-                  onClick={() =>
-                    setFormData({ ...formData, roomType: "single" })
-                  }
-                >
-                  <div className="flex items-center justify-center mb-2">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className={`h-8 w-8 ${
-                        formData.roomType === "single"
-                          ? "text-primary"
-                          : "text-gray-500"
-                      }`}
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                      />
-                    </svg>
-                  </div>
-                  <p
-                    className={`text-center font-medium ${
-                      formData.roomType === "single"
-                        ? "text-primary"
-                        : "text-gray-700"
-                    }`}
-                  >
-                    Single
-                  </p>
-                </div>
-                <div
-                  className={`p-4 border rounded-lg cursor-pointer transition-all ${
-                    formData.roomType === "mixed"
-                      ? "border-primary bg-gradient-subtle"
-                      : "border-gray-300 hover:border-primary/50"
-                  }`}
-                  onClick={() =>
-                    setFormData({ ...formData, roomType: "mixed" })
-                  }
-                >
-                  <div className="flex items-center justify-center mb-2">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className={`h-8 w-8 ${
-                        formData.roomType === "mixed"
-                          ? "text-primary"
-                          : "text-gray-500"
-                      }`}
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                      />
-                    </svg>
-                  </div>
-                  <p
-                    className={`text-center font-medium ${
-                      formData.roomType === "mixed"
-                        ? "text-primary"
-                        : "text-gray-700"
-                    }`}
-                  >
-                    Mixed
-                  </p>
-                </div>
-              </div>
+              {errors.country && (
+                <p className="text-red-500 text-sm mt-1">{errors.country}</p>
+              )}
             </div>
 
             <div className="mb-4">
@@ -525,6 +537,86 @@ const AddPropertyModal = ({ onClose }: AddPropertyModalProps) => {
               />
               {errors.city && (
                 <p className="text-red-500 text-sm mt-1">{errors.city}</p>
+              )}
+            </div>
+
+            {/* Location Map Section */}
+            <div className="mb-4">
+              <label className="block text-gray-700 mb-2 font-medium">
+                Property Location
+              </label>
+              <div
+                className={`w-full h-64 mb-2 border rounded-lg overflow-hidden ${
+                  errors.location ? "border-red-500" : "border-gray-300"
+                }`}
+              >
+                <MapWithNoSSR
+                  initialPosition={
+                    formData.latitude && formData.longitude
+                      ? [
+                          parseFloat(formData.latitude),
+                          parseFloat(formData.longitude),
+                        ]
+                      : [34.052235, -118.243683]
+                  }
+                  onLocationSelect={handleLocationSelect}
+                />
+              </div>
+              <p className="text-sm text-gray-500 mb-1">
+                {formData.country
+                  ? "Country location selected. Click on the map to select a more specific location."
+                  : "Please select a country first, then click on the map to select a specific location."}
+              </p>
+              {errors.location && (
+                <p className="text-red-500 text-sm mt-1">{errors.location}</p>
+              )}
+            </div>
+
+            <div className="mb-4">
+              <label
+                htmlFor="address"
+                className="block text-gray-700 mb-2 font-medium"
+              >
+                Address
+              </label>
+              <input
+                type="text"
+                id="address"
+                name="address"
+                className={`w-full px-4 py-3 border ${
+                  errors.address ? "border-red-500" : "border-gray-300"
+                } rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors`}
+                value={formData.address}
+                onChange={handleInputChange}
+                placeholder="e.g., 123 Main St, Apt 4B"
+              />
+              {errors.address && (
+                <p className="text-red-500 text-sm mt-1">{errors.address}</p>
+              )}
+            </div>
+
+            <div className="mb-4">
+              <label
+                htmlFor="description"
+                className="block text-gray-700 mb-2 font-medium"
+              >
+                Description
+              </label>
+              <textarea
+                id="description"
+                name="description"
+                rows={3}
+                className={`w-full px-4 py-3 border ${
+                  errors.description ? "border-red-500" : "border-gray-300"
+                } rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors`}
+                value={formData.description}
+                onChange={handleInputChange}
+                placeholder="Describe your property..."
+              />
+              {errors.description && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errors.description}
+                </p>
               )}
             </div>
           </div>
@@ -561,6 +653,134 @@ const AddPropertyModal = ({ onClose }: AddPropertyModalProps) => {
               </div>
               {errors.price && (
                 <p className="text-red-500 text-sm mt-1">{errors.price}</p>
+              )}
+            </div>
+
+            <div className="mb-4">
+              <label
+                htmlFor="gender"
+                className="block text-gray-700 mb-2 font-medium"
+              >
+                Gender Preference
+              </label>
+              <div className="grid grid-cols-3 gap-4">
+                <div
+                  className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                    formData.gender === "male"
+                      ? "border-primary bg-gradient-subtle"
+                      : "border-gray-300 hover:border-primary/50"
+                  }`}
+                  onClick={() => setFormData({ ...formData, gender: "male" })}
+                >
+                  <div className="flex items-center justify-center mb-2">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className={`h-8 w-8 ${
+                        formData.gender === "male"
+                          ? "text-primary"
+                          : "text-gray-500"
+                      }`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      />
+                    </svg>
+                  </div>
+                  <p
+                    className={`text-center font-medium ${
+                      formData.gender === "male"
+                        ? "text-primary"
+                        : "text-gray-700"
+                    }`}
+                  >
+                    Male
+                  </p>
+                </div>
+                <div
+                  className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                    formData.gender === "female"
+                      ? "border-primary bg-gradient-subtle"
+                      : "border-gray-300 hover:border-primary/50"
+                  }`}
+                  onClick={() => setFormData({ ...formData, gender: "female" })}
+                >
+                  <div className="flex items-center justify-center mb-2">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className={`h-8 w-8 ${
+                        formData.gender === "female"
+                          ? "text-primary"
+                          : "text-gray-500"
+                      }`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      />
+                    </svg>
+                  </div>
+                  <p
+                    className={`text-center font-medium ${
+                      formData.gender === "female"
+                        ? "text-primary"
+                        : "text-gray-700"
+                    }`}
+                  >
+                    Female
+                  </p>
+                </div>
+                <div
+                  className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                    formData.gender === "any"
+                      ? "border-primary bg-gradient-subtle"
+                      : "border-gray-300 hover:border-primary/50"
+                  }`}
+                  onClick={() => setFormData({ ...formData, gender: "any" })}
+                >
+                  <div className="flex items-center justify-center mb-2">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className={`h-8 w-8 ${
+                        formData.gender === "any"
+                          ? "text-primary"
+                          : "text-gray-500"
+                      }`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                      />
+                    </svg>
+                  </div>
+                  <p
+                    className={`text-center font-medium ${
+                      formData.gender === "any"
+                        ? "text-primary"
+                        : "text-gray-700"
+                    }`}
+                  >
+                    Any
+                  </p>
+                </div>
+              </div>
+              {errors.gender && (
+                <p className="text-red-500 text-sm mt-1">{errors.gender}</p>
               )}
             </div>
 
@@ -612,57 +832,79 @@ const AddPropertyModal = ({ onClose }: AddPropertyModalProps) => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label
-                  htmlFor="totalRooms"
-                  className="block text-gray-700 mb-2 font-medium"
-                >
-                  Total Rooms
-                </label>
-                <input
-                  type="text"
-                  id="totalRooms"
-                  name="totalRooms"
-                  className={`w-full px-4 py-3 border ${
-                    errors.totalRooms ? "border-red-500" : "border-gray-300"
-                  } rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors`}
-                  value={formData.totalRooms}
-                  onChange={handleInputChange}
-                  placeholder="e.g., 3"
-                />
-                {errors.totalRooms && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.totalRooms}
-                  </p>
-                )}
-              </div>
+            {formData.type === "house" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label
+                    htmlFor="totalRooms"
+                    className="block text-gray-700 mb-2 font-medium"
+                  >
+                    Total Rooms
+                  </label>
+                  <input
+                    type="text"
+                    id="totalRooms"
+                    name="totalRooms"
+                    className={`w-full px-4 py-3 border ${
+                      errors.totalRooms ? "border-red-500" : "border-gray-300"
+                    } rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors ${
+                      formData.type === "house" ? "bg-gray-100" : ""
+                    }`}
+                    value={formData.totalRooms}
+                    onChange={handleInputChange}
+                    placeholder="e.g., 3"
+                    readOnly={formData.type === "house"}
+                  />
+                  {errors.totalRooms && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.totalRooms}
+                    </p>
+                  )}
+                  {formData.type === "house" && (
+                    <p className="text-gray-500 text-xs mt-1">
+                      For single room listings, this value is fixed at 1
+                    </p>
+                  )}
+                </div>
 
-              <div>
-                <label
-                  htmlFor="availableRooms"
-                  className="block text-gray-700 mb-2 font-medium"
-                >
-                  Available Rooms
-                </label>
-                <input
-                  type="text"
-                  id="availableRooms"
-                  name="availableRooms"
-                  className={`w-full px-4 py-3 border ${
-                    errors.availableRooms ? "border-red-500" : "border-gray-300"
-                  } rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors`}
-                  value={formData.availableRooms}
-                  onChange={handleInputChange}
-                  placeholder="e.g., 1"
-                />
-                {errors.availableRooms && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.availableRooms}
-                  </p>
-                )}
+                <div>
+                  <label
+                    htmlFor="availableRooms"
+                    className="block text-gray-700 mb-2 font-medium"
+                  >
+                    Available Rooms
+                  </label>
+                  <input
+                    type="text"
+                    id="availableRooms"
+                    name="availableRooms"
+                    className={`w-full px-4 py-3 border ${
+                      errors.availableRooms
+                        ? "border-red-500"
+                        : "border-gray-300"
+                    } rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors ${
+                      formData.type === "house" ? "bg-gray-100" : ""
+                    }`}
+                    value={
+                      formData.type === "house" ? "1" : formData.availableRooms
+                    }
+                    onChange={handleInputChange}
+                    placeholder="e.g., 1"
+                    readOnly={formData.type === "house"}
+                  />
+                  {errors.availableRooms && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.availableRooms}
+                    </p>
+                  )}
+                  {formData.type === "house" && (
+                    <p className="text-gray-500 text-xs mt-1">
+                      For single room listings, this value is fixed at 1
+                    </p>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         );
 
@@ -968,6 +1210,40 @@ const AddPropertyModal = ({ onClose }: AddPropertyModalProps) => {
                   <span className="text-gray-700">Good for foreigners</span>
                 </label>
               </div>
+
+              <div className="p-4 border border-gray-300 rounded-lg hover:border-primary/50 transition-colors">
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="allowSmoking"
+                    className="w-4 h-4 mr-2 text-primary focus:ring-primary"
+                    checked={formData.allowSmoking}
+                    onChange={handleInputChange}
+                  />
+                  <span className="text-gray-700">Allow smoking</span>
+                </label>
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <label
+                htmlFor="roomsToComplete"
+                className="block text-gray-700 mb-2 font-medium"
+              >
+                Rooms to Complete
+              </label>
+              <input
+                type="text"
+                id="roomsToComplete"
+                name="roomsToComplete"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
+                value={formData.roomsToComplete}
+                onChange={handleInputChange}
+                placeholder="e.g., 2"
+              />
+              <p className="text-sm text-gray-500 mt-1">
+                Number of additional roommates needed
+              </p>
             </div>
           </div>
         );
@@ -997,6 +1273,7 @@ const AddPropertyModal = ({ onClose }: AddPropertyModalProps) => {
                 {categories.length === 0 ? (
                   <option value="">Loading categories...</option>
                 ) : (
+                  Array.isArray(categories) &&
                   categories.map((category) => (
                     <option key={category.id} value={category.id}>
                       {category.name}
@@ -1043,7 +1320,6 @@ const AddPropertyModal = ({ onClose }: AddPropertyModalProps) => {
                   type="file"
                   id="images"
                   name="images"
-                  multiple
                   accept="image/*"
                   className="hidden"
                   onChange={handleImageChange}
@@ -1063,12 +1339,8 @@ const AddPropertyModal = ({ onClose }: AddPropertyModalProps) => {
                       d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
                     />
                   </svg>
-                  <p className="text-gray-600 mb-1">
-                    Drag and drop your images here, or click to browse
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    You can select multiple images
-                  </p>
+                  <p className="text-gray-600 mb-1">Click to add an image</p>
+                  <p className="text-sm text-gray-500">Add images one by one</p>
                 </label>
               </div>
               {errors.images && (
@@ -1090,16 +1362,8 @@ const AddPropertyModal = ({ onClose }: AddPropertyModalProps) => {
                         />
                         <button
                           type="button"
-                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => {
-                            const newImages = [...formData.images];
-                            newImages.splice(index, 1);
-                            setFormData({ ...formData, images: newImages });
-
-                            const newPreviews = [...previewImages];
-                            newPreviews.splice(index, 1);
-                            setPreviewImages(newPreviews);
-                          }}
+                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-75 group-hover:opacity-100 transition-opacity"
+                          onClick={() => removeImage(index)}
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"

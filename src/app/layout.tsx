@@ -4,6 +4,7 @@ import "./globals.css";
 import MobileBottomBar from "../components/shared/MobileBottomBar";
 import { Toaster } from "react-hot-toast";
 import AuthProvider from "@/components/providers/AuthProvider";
+import Header from "@/components/shared/Header";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -25,6 +26,8 @@ export default function RootLayout({
       <body className={`${inter.variable} font-sans antialiased`}>
         <AuthProvider>
           <Toaster />
+          <Header />
+
           {children}
           <MobileBottomBar />
         </AuthProvider>
