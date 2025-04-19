@@ -1,0 +1,155 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String         @id @default(uuid())
+  name              String
+  email             String         @unique
+  password          String
+  phone             String?
+  smoker            Boolean        @default(false)
+  age               String?
+  gender            String?
+  nationality       String?
+  occupation        String?
+  isAdmin           Boolean        @default(false)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  notifications     Notification[] @relation("UserNotifications")
+  sentNotifications Notification[] @relation("AdminNotifications")
+  properties        Property[]
+  favorites         Property[]     @relation("UserFavorites")
+  comments          Comment[]
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relation to the user receiving the notification
+  userId String
+  user   User   @relation("UserNotifications", fields: [userId], references: [id])
+
+  // Relation to the admin sending the notification
+  adminId String
+  admin   User   @relation("AdminNotifications", fields: [adminId], references: [id])
+}
+
+model Category {
+  id         String     @id @default(uuid())
+  name       String
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  properties Property[]
+}
+
+model Property {
+  id                              String       @id @default(uuid())
+  title                           String?
+  slug                            String?
+  images                          String[]
+  video                           String?
+  city                            String?
+  latitude                        String?
+  longitude                       String?
+  type                            PropertyType @default(house)
+  roomType                        RoomType     @default(single)
+  genderRequired                  String?
+  totalRooms                      String?
+  availableRooms                  String?
+  roomsToComplete                 String?
+  price                           String?
+  size                            String?
+  floor                           String?
+  bathrooms                       String?
+  separatedBathroom               Boolean      @default(false)
+  residentsCount                  String?
+  availablePersons                String?
+  rentTime                        RentTime     @default(monthly)
+  paymentTime                     PaymentTime  @default(monthly)
+  priceIncludeWaterAndElectricity Boolean      @default(false)
+  allowSmoking                    Boolean      @default(false)
+  includeFurniture                Boolean      @default(false)
+  airConditioning                 Boolean      @default(false)
+  includeWaterHeater              Boolean      @default(false)
+  parking                         Boolean      @default(false)
+  internet                        Boolean      @default(false)
+  nearToMetro                     Boolean      @default(false)
+  nearToMarket                    Boolean      @default(false)
+  elevator                        Boolean      @default(false)
+  trialPeriod                     Boolean      @default(false)
+  goodForForeigners               Boolean      @default(false)
+  rating                          Float        @default(0)
+  country                         String?
+  comments                        Comment[]
+  termsAndConditions              String?
+  createdAt                       DateTime     @default(now())
+  updatedAt                       DateTime     @updatedAt
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  ownerId String
+  owner   User   @relation(fields: [ownerId], references: [id])
+
+  favorites User[] @relation("UserFavorites")
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  content   String
+  price     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id])
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+}
+
+// Enums for Property model
+enum PropertyType {
+  house
+  room
+}
+
+enum RoomType {
+  mixed
+  single
+}
+
+enum RentTime {
+  daily
+  weekly
+  monthly
+  quarterly
+  semiannual
+  annually
+}
+
+enum PaymentTime {
+  daily
+  weekly
+  monthly
+  quarterly
+  semiannual
+  annually
+}
