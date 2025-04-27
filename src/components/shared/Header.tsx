@@ -17,6 +17,7 @@ import {
   DollarSign,
   Calendar,
   Loader2,
+  Home,
 } from "lucide-react";
 import { useUserStore } from "@/store/useUserStore";
 import { useTabStore } from "./MobileBottomBar";
@@ -575,18 +576,6 @@ const Header = ({ onSearch, categories = [] }: HeaderProps) => {
               </div>
               <div className="border-t border-gray-100 pt-4">
                 <nav className="flex flex-col space-y-2">
-                  <Link
-                    href="/"
-                    className="text-gray-700 hover:text-primary transition-colors py-1 cursor-pointer"
-                  >
-                    Home
-                  </Link>
-                  <Link
-                    href="/properties"
-                    className="text-gray-700 hover:text-primary transition-colors py-1 cursor-pointer"
-                  >
-                    Properties
-                  </Link>
                   {isAdmin && (
                     <Link
                       href="/dashboard"
@@ -617,19 +606,6 @@ const Header = ({ onSearch, categories = [] }: HeaderProps) => {
                       <span>{item.label}</span>
                     </Link>
                   ))}
-
-                  <Link
-                    href="/about"
-                    className="text-gray-700 hover:text-primary transition-colors py-1 cursor-pointer"
-                  >
-                    About Us
-                  </Link>
-                  <Link
-                    href="/contact"
-                    className="text-gray-700 hover:text-primary transition-colors py-1 cursor-pointer"
-                  >
-                    Contact
-                  </Link>
                 </nav>
               </div>
             </div>
