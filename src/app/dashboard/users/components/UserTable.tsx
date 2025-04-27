@@ -12,11 +12,7 @@ import {
   TableRow,
   TableCell,
 } from "@/components/ui/table";
-import {
-  Tooltip,
-  TooltipTrigger,
-  TooltipContent,
-} from "@/components/ui/tooltip";
+import Tooltip from "@/components/ui/tooltip";
 
 interface UserTableProps {
   users: User[];
@@ -166,13 +162,11 @@ const UserTable = ({
                   </button>
 
                   {user.id === currentUserId ? (
-                    <Tooltip>
-                      <TooltipContent>
-                        <div className="flex items-center gap-1">
-                          <Info className="h-4 w-4" />
-                          <span>You cannot delete your own account</span>
-                        </div>
-                      </TooltipContent>
+                    <Tooltip text="You cannot delete your own account">
+                      <div className="flex items-center gap-1">
+                        <Info className="h-4 w-4" />
+                        <span>You cannot delete your own account</span>
+                      </div>
                     </Tooltip>
                   ) : (
                     <button

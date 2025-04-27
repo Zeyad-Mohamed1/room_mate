@@ -2,6 +2,17 @@
 
 RoommateFinder is a web application similar to Airbnb but focused on finding roommates and rooms to rent. It allows users to list their properties, search for available rooms, and connect with potential roommates.
 
+## Pages
+
+1 - Home
+2 - Property Details
+3 - MyAds
+4 - Notifications
+5 - Profile
+6 - Favorites
+7 - Offers
+8 - Bookings
+
 ## Features
 
 - **User Authentication**: Register and login functionality
@@ -28,12 +39,14 @@ RoommateFinder is a web application similar to Airbnb but focused on finding roo
 ### Installation
 
 1. Clone the repository:
+
    ```
    git clone https://github.com/yourusername/roommate-finder.git
    cd roommate-finder
    ```
 
 2. Install dependencies:
+
    ```
    npm install
    # or
@@ -41,6 +54,7 @@ RoommateFinder is a web application similar to Airbnb but focused on finding roo
    ```
 
 3. Run the development server:
+
    ```
    npm run dev
    # or

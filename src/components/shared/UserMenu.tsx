@@ -1,23 +1,45 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useUserStore } from "@/store/useUserStore";
-import { User, LogOut, UserCircle } from "lucide-react";
+import {
+  User,
+  LogOut,
+  UserCircle,
+  DollarSign,
+  FileText,
+  Calendar,
+  Heart,
+  Bell,
+} from "lucide-react";
 import { authService } from "@/services/authService";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { toast } from "react-hot-toast";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 interface UserMenuProps {
   onLoginClick: () => void;
   onRegisterClick: () => void;
+  userNavItems?: {
+    href: string;
+    label: string;
+    icon: React.ReactNode;
+    tab: string;
+  }[];
 }
 
-const UserMenu = ({ onLoginClick, onRegisterClick }: UserMenuProps) => {
+const UserMenu = ({
+  onLoginClick,
+  onRegisterClick,
+  userNavItems = [],
+}: UserMenuProps) => {
   const { data: session } = useSession();
   const { user, isAuthenticated } = useUserStore();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
 
   useEffect(() => {
     // Close menu when clicking outside
@@ -94,6 +116,24 @@ const UserMenu = ({ onLoginClick, onRegisterClick }: UserMenuProps) => {
             <p className="font-medium text-sm">{user.name}</p>
             <p className="text-xs text-gray-500">{user.email}</p>
           </div>
+
+          {/* Navigation Items */}
+          {userNavItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`block w-full text-left px-4 py-2 text-sm ${
+                pathname === item.href
+                  ? "text-primary bg-gray-50"
+                  : "text-gray-700"
+              } hover:bg-gray-100 transition-colors flex items-center`}
+              onClick={() => setIsOpen(false)}
+            >
+              <span className="w-4 h-4 mr-2">{item.icon}</span>
+              {item.label}
+            </Link>
+          ))}
+
           <button
             onClick={handleLogout}
             className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors flex items-center"

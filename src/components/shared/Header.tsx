@@ -1,6 +1,7 @@
 "use client";
-import { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import LoginModal from "../auth/LoginModal";
 import RegisterModal from "../auth/RegisterModal";
 import AddPropertyModal from "./AddPropertyModal";
@@ -10,32 +11,135 @@ import {
   Menu,
   X,
   Plus,
-  MessageSquare,
-  Bell,
   Heart,
   FileText,
   LayoutDashboard,
+  DollarSign,
+  Calendar,
+  Loader2,
 } from "lucide-react";
 import { useUserStore } from "@/store/useUserStore";
 import { useTabStore } from "./MobileBottomBar";
 import { useIsAdmin } from "@/utils/auth";
+import NotificationIcon from "./NotificationIcon";
+import { useClickAway } from "@/hooks/useClickAway";
+import Image from "next/image";
 
-const Header = () => {
+// Property type for search results
+type Property = {
+  id: string;
+  title: string;
+  price: number;
+  city: string;
+  slug: string;
+  images: string[];
+};
+
+// Props to allow access to search state from parent components
+interface HeaderProps {
+  onSearch?: (query: string, categoryId?: string) => void;
+  categories?: Array<{ id: string; name: string }>;
+}
+
+const Header = ({ onSearch, categories = [] }: HeaderProps) => {
   const { isAuthenticated } = useUserStore();
   const isAdmin = useIsAdmin();
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const activeTab = useTabStore((state) => state.activeTab);
   const setActiveTab = useTabStore((state) => state.setActiveTab);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
   const [isAddPropertyModalOpen, setIsAddPropertyModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchVisible, setIsSearchVisible] = useState(false);
+  const [results, setResults] = useState<Property[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  // Initialize search from URL params when component mounts
+  useEffect(() => {
+    const query = searchParams.get("search") || "";
+    const category = searchParams.get("category") || "";
+
+    setSearchQuery(query);
+    setSelectedCategory(category);
+
+    // Trigger search if on homepage and params exist
+    if (pathname === "/" && (query || category) && onSearch) {
+      onSearch(query, category);
+    }
+  }, [searchParams, pathname, onSearch]);
+
+  useClickAway(searchRef, () => {
+    setIsOpen(false);
+  });
+
+  // Fetch search results for dropdown
+  useEffect(() => {
+    const fetchResults = async () => {
+      if (!searchQuery.trim()) {
+        setResults([]);
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const response = await fetch(
+          `/api/properties/search?q=${encodeURIComponent(searchQuery)}`
+        );
+        if (!response.ok) throw new Error("Search failed");
+
+        const data = await response.json();
+        setResults(data);
+      } catch (error) {
+        console.error("Search error:", error);
+        setResults([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    // Debounce the search
+    const timer = setTimeout(() => {
+      if (searchQuery && isOpen) {
+        fetchResults();
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, isOpen]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    // Implement search functionality
-    console.log("Searching for:", searchQuery);
+
+    // If on homepage, filter content there
+    if (pathname === "/" && onSearch) {
+      onSearch(searchQuery.trim(), selectedCategory);
+
+      // Update URL without navigation
+      const params = new URLSearchParams();
+      if (searchQuery.trim()) params.set("search", searchQuery.trim());
+      if (selectedCategory) params.set("category", selectedCategory);
+      const newUrl = `${pathname}${
+        params.toString() ? `?${params.toString()}` : ""
+      }`;
+      window.history.pushState(null, "", newUrl);
+    } else {
+      // If not on homepage, navigate to homepage with search params
+      const params = new URLSearchParams();
+      if (searchQuery.trim()) params.set("search", searchQuery.trim());
+      if (selectedCategory) params.set("category", selectedCategory);
+      router.push(`/${params.toString() ? `?${params.toString()}` : ""}`);
+    }
+
+    setIsOpen(false);
+    setIsSearchVisible(false);
   };
 
   const toggleMobileMenu = () => {
@@ -52,14 +156,42 @@ const Header = () => {
     }
   };
 
-  const handleTabClick = (tab: string) => {
-    setActiveTab(tab);
+  // User navigation items
+  const userNavItems = [
+    {
+      href: "/my-ads",
+      label: "My Ads",
+      icon: <FileText className="h-5 w-5" />,
+      tab: "my-ads",
+    },
+    {
+      href: "/my-offers",
+      label: "My Offers",
+      icon: <DollarSign className="h-5 w-5" />,
+      tab: "my-offers",
+    },
+    {
+      href: "/bookings",
+      label: "My Bookings",
+      icon: <Calendar className="h-5 w-5" />,
+      tab: "bookings",
+    },
+    {
+      href: "/notifications",
+      label: "Notifications",
+      icon: <NotificationIcon />,
+      tab: "notifications",
+    },
+    {
+      href: "/favorites",
+      label: "Favorites",
+      icon: <Heart className="h-5 w-5" />,
+      tab: "favorites",
+    },
+  ];
 
-    // Open Add Property modal when the add property tab is clicked
-    if (tab === "add-property") {
-      setIsAddPropertyModalOpen(true);
-    }
-  };
+  // Filter dashboard out from dropdown items when needed
+  const dropdownNavItems = userNavItems;
 
   return (
     <header className="sticky top-0 z-50 bg-white shadow-soft">
@@ -79,122 +211,144 @@ const Header = () => {
           </Link>
 
           {/* Desktop Search Bar */}
-          <form
-            onSubmit={handleSearch}
-            className="hidden lg:flex flex-1 max-w-2xl mx-8"
+          <div
+            className="hidden lg:block flex-1 max-w-2xl mx-8"
+            ref={searchRef}
           >
-            <div className="relative w-full">
-              <input
-                type="text"
-                placeholder="Search for rooms, houses, or locations..."
-                className="w-full py-2.5 px-5 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent shadow-soft"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <button
-                type="submit"
-                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-primary transition-colors cursor-pointer"
-              >
-                <Search className="h-5 w-5" />
-              </button>
-            </div>
-          </form>
-
-          {/* Desktop Navigation Tabs - Only for authenticated users */}
-          {isAuthenticated && (
-            <div className="hidden md:flex items-center space-x-6 mr-4">
-              {isAdmin && (
-                <Link
-                  href="/dashboard"
-                  className={`flex items-center space-x-1 ${
-                    activeTab === "dashboard"
-                      ? "text-primary"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  <LayoutDashboard
-                    className={`h-5 w-5 ${
-                      activeTab === "dashboard" ? "stroke-[2.5px]" : ""
-                    }`}
-                  />
-                  <span className="text-sm font-medium">Dashboard</span>
-                </Link>
-              )}
-
-              <button
-                onClick={() => handleTabClick("chat")}
-                className={`flex items-center space-x-1 ${
-                  activeTab === "chat"
-                    ? "text-primary"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-              >
-                <MessageSquare
-                  className={`h-5 w-5 ${
-                    activeTab === "chat" ? "stroke-[2.5px]" : ""
-                  }`}
-                />
-                <span className="text-sm font-medium">Chat</span>
-              </button>
-
-              <button
-                onClick={() => handleTabClick("my-ads")}
-                className={`flex items-center space-x-1 ${
-                  activeTab === "my-ads"
-                    ? "text-primary"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-              >
-                <FileText
-                  className={`h-5 w-5 ${
-                    activeTab === "my-ads" ? "stroke-[2.5px]" : ""
-                  }`}
-                />
-                <span className="text-sm font-medium">My Ads</span>
-              </button>
-
-              <button
-                onClick={() => handleTabClick("notifications")}
-                className={`flex items-center space-x-1 relative ${
-                  activeTab === "notifications"
-                    ? "text-primary"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-              >
-                <div className="relative">
-                  <Bell
-                    className={`h-5 w-5 ${
-                      activeTab === "notifications" ? "stroke-[2.5px]" : ""
-                    }`}
-                  />
-                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></div>
+            <form onSubmit={handleSearch}>
+              <div className="flex gap-2">
+                {/* Category Dropdown */}
+                <div className="w-40">
+                  <select
+                    className="w-full py-2.5 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent shadow-soft"
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                  >
+                    <option value="">All Categories</option>
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-                <span className="text-sm font-medium">Alerts</span>
-              </button>
 
-              <button
-                onClick={() => handleTabClick("favorites")}
-                className={`flex items-center space-x-1 ${
-                  activeTab === "favorites"
-                    ? "text-primary"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-              >
-                <Heart
-                  className={`h-5 w-5 ${
-                    activeTab === "favorites" ? "stroke-[2.5px]" : ""
-                  }`}
-                />
-                <span className="text-sm font-medium">Favorites</span>
-              </button>
-            </div>
-          )}
+                {/* Search Input */}
+                <div className="relative flex-1">
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                  <input
+                    type="text"
+                    placeholder="Search for rooms, houses, or locations..."
+                    className="w-full py-2.5 px-12 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent shadow-soft"
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setIsOpen(true);
+                    }}
+                    onFocus={() => setIsOpen(true)}
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      className="absolute right-10 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-primary transition-colors cursor-pointer"
+                      onClick={() => {
+                        setSearchQuery("");
+                        setResults([]);
+                      }}
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  )}
+                  <button
+                    type="submit"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-primary text-white p-1.5 rounded-lg hover:bg-primary/90 transition-colors"
+                  >
+                    <Search className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Results dropdown */}
+              {isOpen && searchQuery && (
+                <div className="absolute z-10 mt-1 w-full max-w-2xl bg-white rounded-lg shadow-lg overflow-hidden border border-gray-100">
+                  {isLoading ? (
+                    <div className="flex items-center justify-center py-6">
+                      <Loader2 className="h-6 w-6 text-primary animate-spin" />
+                      <span className="ml-2 text-gray-600">Searching...</span>
+                    </div>
+                  ) : results.length > 0 ? (
+                    <div className="max-h-96 overflow-y-auto">
+                      {results.map((property) => (
+                        <Link
+                          key={property.id}
+                          href={`/property/${property.slug}`}
+                          className="block hover:bg-gray-50 transition-colors"
+                          onClick={() => setIsOpen(false)}
+                        >
+                          <div className="flex items-center p-3 border-b border-gray-100">
+                            <div className="w-16 h-16 bg-gray-200 rounded-md overflow-hidden flex-shrink-0">
+                              {property.images && property.images[0] ? (
+                                <Image
+                                  src={property.images[0]}
+                                  alt={property.title}
+                                  width={64}
+                                  height={64}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                                  <span className="text-xs text-gray-400">
+                                    No image
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                            <div className="ml-3 flex-1">
+                              <p className="font-medium text-sm line-clamp-1">
+                                {property.title}
+                              </p>
+                              <p className="text-gray-500 text-xs">
+                                {property.city}
+                              </p>
+                              <p className="text-primary font-medium text-sm mt-1">
+                                ${property.price}
+                              </p>
+                            </div>
+                          </div>
+                        </Link>
+                      ))}
+                      <div className="p-3 text-center">
+                        <button
+                          onClick={() => {
+                            handleSearch({
+                              preventDefault: () => {},
+                            } as React.FormEvent);
+                          }}
+                          className="text-sm text-primary hover:underline"
+                        >
+                          View all results
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="py-6 px-4 text-center">
+                      <p className="text-gray-500">No properties found</p>
+                      <p className="text-sm text-gray-400 mt-1">
+                        Try different keywords or browse all properties
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </form>
+          </div>
 
           {/* Desktop User Menu */}
           <div className="hidden md:flex items-center space-x-3">
             <UserMenu
               onLoginClick={() => setIsLoginModalOpen(true)}
               onRegisterClick={() => setIsRegisterModalOpen(true)}
+              userNavItems={dropdownNavItems}
             />
             {/* Only show Add Property button if user is authenticated */}
             {isAuthenticated && (
@@ -259,24 +413,135 @@ const Header = () => {
 
         {/* Mobile Search Bar */}
         {isSearchVisible && (
-          <div className="md:hidden mt-3 animate-fadeIn">
-            <form onSubmit={handleSearch} className="flex">
-              <div className="relative w-full">
+          <div className="md:hidden mt-3 animate-fadeIn" ref={searchRef}>
+            <form onSubmit={handleSearch} className="space-y-2">
+              {/* Category dropdown for mobile */}
+              <select
+                className="w-full py-2.5 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent shadow-soft"
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+              >
+                <option value="">All Categories</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+
+              {/* Search input for mobile */}
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                 <input
                   type="text"
                   placeholder="Search for rooms, houses, or locations..."
-                  className="w-full py-2.5 px-5 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent shadow-soft"
+                  className="w-full py-2.5 px-12 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent shadow-soft"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setIsOpen(true);
+                  }}
+                  onFocus={() => setIsOpen(true)}
                   autoFocus
                 />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    className="absolute right-10 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-primary transition-colors cursor-pointer"
+                    onClick={() => {
+                      setSearchQuery("");
+                      setResults([]);
+                    }}
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                )}
                 <button
                   type="submit"
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-primary transition-colors cursor-pointer"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-primary text-white p-1.5 rounded-lg hover:bg-primary/90 transition-colors"
                 >
-                  <Search className="h-5 w-5" />
+                  <Search className="h-4 w-4" />
                 </button>
               </div>
+
+              {/* Mobile Results Dropdown */}
+              {isOpen && searchQuery && (
+                <div className="absolute z-50 left-0 right-0 px-4 mt-1">
+                  <div className="w-full bg-white rounded-lg shadow-lg overflow-hidden border border-gray-100">
+                    {isLoading ? (
+                      <div className="flex items-center justify-center py-6">
+                        <Loader2 className="h-6 w-6 text-primary animate-spin" />
+                        <span className="ml-2 text-gray-600">Searching...</span>
+                      </div>
+                    ) : results.length > 0 ? (
+                      <div className="max-h-[60vh] overflow-y-auto">
+                        {results.map((property) => (
+                          <Link
+                            key={property.id}
+                            href={`/property/${property.slug}`}
+                            className="block hover:bg-gray-50 transition-colors"
+                            onClick={() => {
+                              setIsOpen(false);
+                              setIsSearchVisible(false);
+                            }}
+                          >
+                            <div className="flex items-center p-3 border-b border-gray-100">
+                              <div className="w-16 h-16 bg-gray-200 rounded-md overflow-hidden flex-shrink-0">
+                                {property.images && property.images[0] ? (
+                                  <Image
+                                    src={property.images[0]}
+                                    alt={property.title}
+                                    width={64}
+                                    height={64}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                                    <span className="text-xs text-gray-400">
+                                      No image
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="ml-3 flex-1">
+                                <p className="font-medium text-sm line-clamp-1">
+                                  {property.title}
+                                </p>
+                                <p className="text-gray-500 text-xs">
+                                  {property.city}
+                                </p>
+                                <p className="text-primary font-medium text-sm mt-1">
+                                  ${property.price}
+                                </p>
+                              </div>
+                            </div>
+                          </Link>
+                        ))}
+                        <div className="p-3 text-center">
+                          <button
+                            onClick={() => {
+                              handleSearch({
+                                preventDefault: () => {},
+                              } as React.FormEvent);
+                              setIsSearchVisible(false);
+                            }}
+                            className="text-sm text-primary hover:underline"
+                          >
+                            View all results
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="py-6 px-4 text-center">
+                        <p className="text-gray-500">No properties found</p>
+                        <p className="text-sm text-gray-400 mt-1">
+                          Try different keywords or browse all properties
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </form>
           </div>
         )}
@@ -295,6 +560,7 @@ const Header = () => {
                     setIsRegisterModalOpen(true);
                     setIsMobileMenuOpen(false);
                   }}
+                  userNavItems={dropdownNavItems}
                 />
                 <button
                   onClick={() => {
@@ -325,11 +591,33 @@ const Header = () => {
                     <Link
                       href="/dashboard"
                       className="text-gray-700 hover:text-primary transition-colors py-1 cursor-pointer flex items-center space-x-2"
+                      onClick={() => setActiveTab("dashboard")}
                     >
                       <LayoutDashboard className="h-4 w-4" />
                       <span>Dashboard</span>
                     </Link>
                   )}
+
+                  {/* User-specific mobile navigation */}
+                  {userNavItems.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className="text-gray-700 hover:text-primary transition-colors py-1 cursor-pointer flex items-center space-x-2"
+                      onClick={() => {
+                        setActiveTab(item.tab);
+                        setIsMobileMenuOpen(false);
+                      }}
+                    >
+                      {item.tab === "notifications" ? (
+                        <NotificationIcon iconClassName="h-4 w-4" />
+                      ) : (
+                        item.icon
+                      )}
+                      <span>{item.label}</span>
+                    </Link>
+                  ))}
+
                   <Link
                     href="/about"
                     className="text-gray-700 hover:text-primary transition-colors py-1 cursor-pointer"

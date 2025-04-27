@@ -1,8 +1,9 @@
+"use client";
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { toast } from "react-hot-toast";
 import axios from "axios";
-
+import { useQueryClient } from "@tanstack/react-query";
 interface UseFavoriteProps {
   propertyId: string;
 }
@@ -11,6 +12,7 @@ export const useFavorite = ({ propertyId }: UseFavoriteProps) => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { data: session } = useSession();
+  const queryClient = useQueryClient();
 
   const fetchFavoriteStatus = useCallback(async () => {
     if (!session?.user) return;
@@ -52,6 +54,7 @@ export const useFavorite = ({ propertyId }: UseFavoriteProps) => {
           ? "Added to favorites"
           : "Removed from favorites"
       );
+      queryClient.invalidateQueries({ queryKey: ["favorites"] });
     } catch (error) {
       console.error("Error toggling favorite:", error);
       toast.error("Failed to update favorites");

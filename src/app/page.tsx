@@ -1,91 +1,68 @@
+import { Suspense } from "react";
 import WelcomeDialog from "@/components/shared/WelcomeDialog";
-import prisma from "@/lib/prisma";
-import { PropertyType, RoomType } from "@prisma/client";
 import PropertySection from "./components/home/PropertySection";
 import Footer from "./components/home/Footer";
+import prisma from "@/lib/prisma";
+import { HomePageProvider } from "./components/home/HomePageContext";
 
-// Define property type for type safety
-type Property = {
-  id: string;
-  title: string | null;
-  price: string | null;
-  city: string | null;
-  type: PropertyType;
-  roomType: RoomType;
-  images: string[];
-  bathrooms: string | null;
-  residentsCount: string | null;
-  availablePersons: string | null;
-  goodForForeigners: boolean;
-  country: string | null;
-  genderRequired: string | null;
-};
-
-export const revalidate = 3600; // Revalidate at most every hour
-
-async function getProperties() {
+// Fetch categories for the header filter
+async function getCategories() {
   try {
-    const properties = await prisma.property.findMany({
-      select: {
-        id: true,
-        title: true,
-        price: true,
-        city: true,
-        type: true,
-        roomType: true,
-        images: true,
-        bathrooms: true,
-        residentsCount: true,
-        availablePersons: true,
-        goodForForeigners: true,
-        country: true,
-        genderRequired: true,
-      },
+    const categories = await prisma.category.findMany({
       orderBy: {
-        createdAt: "desc", // Get the most recent properties
+        name: "asc",
       },
     });
 
-    console.log(properties);
-
-    return properties as Property[];
+    return categories.map((category) => ({
+      id: category.id,
+      name: category.name,
+    }));
   } catch (error) {
-    console.error("Error fetching properties:", error);
-    return [] as Property[];
+    console.error("Error fetching categories:", error);
+    return [];
   }
 }
 
 export default async function Home() {
-  const properties = await getProperties();
-
-  // Map properties to the format expected by PropertyCard
-  const formattedProperties = properties.map((property) => ({
-    id: property.id,
-    title: property.title || "Unnamed Property",
-    price: `$${property.price || "0"}/month`,
-    location: property.city || "Unknown location",
-    type: property.type,
-    roomType: property.roomType,
-    imageUrl:
-      property.images && property.images.length > 0
-        ? property.images[0]
-        : "/images/properties/placeholder.jpg",
-    amenities: [], // This would need to be populated from a relation or parsed field
-    persons: property.availablePersons ? Number(property.availablePersons) : 1,
-    bathrooms: property.bathrooms ? Number(property.bathrooms) : 1,
-    genderPreference: property.genderRequired || "any",
-    countryCode: property.country ? property.country.toLowerCase() : "us",
-  }));
+  const categories = await getCategories();
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <WelcomeDialog />
+    <HomePageProvider>
+      <div className="min-h-screen bg-gray-50">
+        <WelcomeDialog />
 
-      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 pb-24 md:pb-12">
-        <PropertySection properties={formattedProperties} />
-      </main>
+        <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 pb-24 md:pb-12">
+          <Suspense fallback={<PropertySectionSkeleton />}>
+            <PropertySection />
+          </Suspense>
+        </main>
 
-      <Footer />
+        <Footer />
+      </div>
+    </HomePageProvider>
+  );
+}
+
+// Skeleton loader for property section
+function PropertySectionSkeleton() {
+  return (
+    <div className="space-y-8">
+      <div className="flex flex-col md:flex-row justify-between items-start mb-8">
+        <div>
+          <div className="w-48 h-10 bg-gray-200 rounded-md animate-pulse mb-2"></div>
+          <div className="w-36 h-6 bg-gray-200 rounded-md animate-pulse"></div>
+        </div>
+        <div className="w-32 h-10 bg-gray-200 rounded-md animate-pulse mt-4 md:mt-0"></div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {[...Array(6)].map((_, index) => (
+          <div
+            key={index}
+            className="bg-white rounded-xl shadow-soft animate-pulse h-80"
+          />
+        ))}
+      </div>
     </div>
   );
 }

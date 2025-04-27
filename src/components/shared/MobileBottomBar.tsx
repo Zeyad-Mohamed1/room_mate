@@ -1,10 +1,18 @@
 "use client";
 import { useState, useEffect } from "react";
-import { MessageSquare, Plus, Bell, Heart, FileText } from "lucide-react";
+import {
+  MessageSquare,
+  Plus,
+  Bell,
+  Heart,
+  FileText,
+  DollarSign,
+  Calendar,
+} from "lucide-react";
 import AddPropertyModal from "./AddPropertyModal";
 import { useUserStore } from "@/store/useUserStore";
 import { create } from "zustand";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 // Create a shared store for tab state between Header and MobileBottomBar
 interface TabState {
@@ -23,6 +31,7 @@ const MobileBottomBar = () => {
   const activeTab = useTabStore((state) => state.activeTab);
   const setActiveTab = useTabStore((state) => state.setActiveTab);
   const pathname = usePathname();
+  const router = useRouter();
 
   // Check if current path is admin dashboard
   const isAdminDashboard = pathname?.includes("/dashboard");
@@ -34,10 +43,18 @@ const MobileBottomBar = () => {
 
   const handleTabClick = (tab: string) => {
     setActiveTab(tab);
-
-    // Open Add Property modal when the add property tab is clicked
-    if (tab === "add-property") {
-      setIsAddPropertyModalOpen(true);
+    if (tab === "home") {
+      router.push("/");
+    } else if (tab === "my-ads") {
+      router.push("/my-ads");
+    } else if (tab === "my-offers") {
+      router.push("/my-offers");
+    } else if (tab === "bookings") {
+      router.push("/bookings");
+    } else if (tab === "notifications") {
+      router.push("/notifications");
+    } else if (tab === "favorites") {
+      router.push("/favorites");
     }
   };
 
@@ -103,6 +120,57 @@ const MobileBottomBar = () => {
               <Plus className="h-6 w-6 text-white" />
             </div>
             <span className="text-xs mt-1 font-medium text-primary">Add</span>
+          </button>
+
+          <button
+            onClick={() => handleTabClick("my-offers")}
+            className={`flex flex-col items-center justify-center w-full h-full relative transition-all duration-200 ${
+              activeTab === "my-offers"
+                ? "text-primary"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            <DollarSign
+              className={`h-5 w-5 ${
+                activeTab === "my-offers" ? "stroke-[2.5px]" : ""
+              }`}
+            />
+            <span
+              className={`text-xs mt-1 font-medium ${
+                activeTab === "my-offers" ? "text-primary" : "text-gray-500"
+              }`}
+            >
+              Offers
+            </span>
+            {activeTab === "my-offers" && (
+              <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1/2 h-0.5 bg-primary rounded-full"></div>
+            )}
+          </button>
+
+          {/* Bookings Button */}
+          <button
+            onClick={() => handleTabClick("bookings")}
+            className={`flex flex-col items-center justify-center w-full h-full relative transition-all duration-200 ${
+              activeTab === "bookings"
+                ? "text-primary"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            <Calendar
+              className={`h-5 w-5 ${
+                activeTab === "bookings" ? "stroke-[2.5px]" : ""
+              }`}
+            />
+            <span
+              className={`text-xs mt-1 font-medium ${
+                activeTab === "bookings" ? "text-primary" : "text-gray-500"
+              }`}
+            >
+              Bookings
+            </span>
+            {activeTab === "bookings" && (
+              <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1/2 h-0.5 bg-primary rounded-full"></div>
+            )}
           </button>
 
           <button

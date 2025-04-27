@@ -4,13 +4,15 @@ import UserTableWrapper from "./components/UserTableWrapper";
 
 export default function UsersPage() {
   return (
-    <div className="space-y-6">
-      <PageHeader title="Users Management" />
+    <Suspense fallback={<UserTableSkeleton />}>
+      <div className="space-y-6">
+        <PageHeader title="Users Management" />
 
-      <Suspense fallback={<UserTableSkeleton />}>
-        <UserTableWrapper />
-      </Suspense>
-    </div>
+        <Suspense fallback={<UserTableSkeleton />}>
+          <UserTableWrapper />
+        </Suspense>
+      </div>
+    </Suspense>
   );
 }
 

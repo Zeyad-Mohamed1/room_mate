@@ -25,7 +25,9 @@ model User {
   sentNotifications Notification[] @relation("AdminNotifications")
   properties        Property[]
   favorites         Property[]     @relation("UserFavorites")
-  comments          Comment[]
+  offers            Offer[]
+  bookings          Booking[]
+  ratings           Rating[]
 }
 
 model Notification {
@@ -93,7 +95,10 @@ model Property {
   trialPeriod                     Boolean      @default(false)
   goodForForeigners               Boolean      @default(false)
   rating                          Float        @default(0)
-  comments                        Comment[]
+  totalRatings                    Int          @default(0)
+  offers                          Offer[]
+  bookings                        Booking[]
+  ratings                         Rating[]
   termsAndConditions              String?
   createdAt                       DateTime     @default(now())
   updatedAt                       DateTime     @updatedAt
@@ -107,18 +112,61 @@ model Property {
   favorites User[] @relation("UserFavorites")
 }
 
-model Comment {
-  id        String   @id @default(uuid())
-  content   String
+model Offer {
+  id        String      @id @default(uuid())
+  message   String
   price     String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  phone     String
+  status    OfferStatus @default(pending)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
 
   propertyId String
   property   Property @relation(fields: [propertyId], references: [id])
 
   userId String
   user   User   @relation(fields: [userId], references: [id])
+
+  booking Booking?
+}
+
+// New Booking model to track confirmed bookings
+model Booking {
+  id          String        @id @default(uuid())
+  startDate   DateTime
+  endDate     DateTime?
+  totalAmount String
+  status      BookingStatus @default(confirmed)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id])
+
+  offerId String @unique
+  offer   Offer  @relation(fields: [offerId], references: [id])
+
+  rating Rating?
+}
+
+// New Rating model to track property ratings
+model Rating {
+  id        String   @id @default(uuid())
+  score     Float
+  comment   String?
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id])
+
+  bookingId String  @unique
+  booking   Booking @relation(fields: [bookingId], references: [id])
 }
 
 // Enums for Property model
@@ -148,4 +196,18 @@ enum PaymentTime {
   quarterly
   semiannual
   annually
+}
+
+// Enums for Offer and Booking models
+enum OfferStatus {
+  pending
+  accepted
+  rejected
+  cancelled
+}
+
+enum BookingStatus {
+  confirmed
+  cancelled
+  completed
 }

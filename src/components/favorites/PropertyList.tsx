@@ -42,6 +42,7 @@ const PropertyList = ({ properties }: PropertyListProps) => {
             (property.genderRequired as "male" | "female" | "any") || "any"
           }
           countryCode={property.country?.substring(0, 2).toLowerCase() || "us"}
+          slug={property.slug || ""}
         />
       ))}
     </div>

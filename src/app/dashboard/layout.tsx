@@ -8,9 +8,7 @@ import {
   LayoutDashboard,
   Users,
   Building,
-  MessageSquare,
   Bell,
-  Settings,
   LogOut,
   HomeIcon,
   Tags,
@@ -35,7 +33,6 @@ import {
 import { authService } from "@/services/authService";
 import { toast } from "react-hot-toast";
 
-// Sidebar components that need the sidebar context
 const SidebarComponents = () => {
   const { state, toggleSidebar } = useSidebar();
   const isExpanded = state === "expanded";
@@ -79,14 +76,8 @@ const SidebarComponents = () => {
       icon: <Bell className="h-4 w-4" />,
       label: "Notifications",
     },
-    {
-      href: "/dashboard/settings",
-      icon: <Settings className="h-4 w-4" />,
-      label: "Settings",
-    },
   ];
 
-  // Custom NavLink component to handle active state
   const renderNavLink = (item: {
     href: string;
     icon: React.ReactNode;
@@ -187,7 +178,6 @@ export default function DashboardLayout({
   const router = useRouter();
   const isAdmin = useIsAdmin();
 
-  // Redirect non-admin users away from the dashboard
   useEffect(() => {
     if (!isAdmin) {
       router.push("/");
@@ -195,7 +185,7 @@ export default function DashboardLayout({
   }, [isAdmin, router]);
 
   if (!isAdmin) {
-    return null; // Don't render anything while redirecting
+    return null;
   }
 
   return (

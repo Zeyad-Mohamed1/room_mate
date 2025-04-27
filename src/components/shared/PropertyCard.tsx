@@ -11,11 +11,14 @@ import {
   BedDouble,
 } from "lucide-react";
 import { useFavorite } from "@/hooks/useFavorite";
+import { PaymentTime } from "@/types";
+import { formatPaymentTime, formatPriceWithTime } from "@/utils/formatters";
 
 interface PropertyCardProps {
   id: string;
   title: string;
   price: string;
+  paymentTime?: PaymentTime;
   location: string;
   type: "house" | "room";
   roomType: "mixed" | "single";
@@ -25,12 +28,14 @@ interface PropertyCardProps {
   bathrooms: number;
   genderPreference: "male" | "female" | "any";
   countryCode: string;
+  slug: string;
 }
 
 const PropertyCard = ({
   id,
   title,
   price,
+  paymentTime = "monthly",
   location,
   type,
   roomType,
@@ -39,6 +44,7 @@ const PropertyCard = ({
   bathrooms,
   genderPreference,
   countryCode,
+  slug,
 }: PropertyCardProps) => {
   const { isFavorite, isLoading, toggleFavorite } = useFavorite({
     propertyId: id,
@@ -99,15 +105,15 @@ const PropertyCard = ({
         </p>
 
         <div className="grid grid-cols-3 gap-2 mb-4">
-          <div className="flex items-center text-gray-700 text-sm bg-gray-50 p-2 rounded-lg">
+          <div className="flex items-center font-semibold text-gray-700 text-xs bg-gray-50 p-2 rounded-lg">
             <Users className="h-4 w-4 mr-1 text-primary" />
             {persons} {persons === 1 ? "Person" : "Persons"}
           </div>
-          <div className="flex items-center text-gray-700 text-sm bg-gray-50 p-2 rounded-lg">
+          <div className="flex items-center font-semibold text-gray-700 text-xs bg-gray-50 p-2 rounded-lg">
             <Bath className="h-4 w-4 mr-1 text-primary" />
             {bathrooms} {bathrooms === 1 ? "Bath" : "Baths"}
           </div>
-          <div className="flex items-center text-gray-700 text-sm bg-gray-50 p-2 rounded-lg">
+          <div className="flex items-center font-semibold text-gray-700 text-xs bg-gray-50 p-2 rounded-lg">
             <UserRound className="h-4 w-4 mr-1 text-primary" />
             {genderPreference === "any"
               ? "Any"
@@ -118,9 +124,11 @@ const PropertyCard = ({
         </div>
 
         <div className="flex justify-between items-center pt-2 border-t border-gray-100">
-          <p className="text-gradient font-bold text-lg">{price}</p>
+          <p className="text-gradient font-bold text-lg">
+            {formatPriceWithTime(price, paymentTime)}
+          </p>
           <Link
-            href={`/property/${id}`}
+            href={`/property/${slug}`}
             className="text-primary hover:text-primary-dark text-sm font-medium flex items-center group cursor-pointer"
           >
             View Details
