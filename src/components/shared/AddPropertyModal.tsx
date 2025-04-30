@@ -241,7 +241,6 @@ const AddPropertyModal = ({
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [previewImages, setPreviewImages] = useState<string[]>([]);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>(
     []
@@ -563,9 +562,8 @@ const AddPropertyModal = ({
       toast.success("Property created successfully!");
       onClose();
     },
-    onError: (error) => {
-      console.error("Error creating property:", error);
-      toast.error("Failed to create property. Please try again.");
+    onError: (error: any) => {
+      toast.error(error.response.data.error);
     },
   });
 

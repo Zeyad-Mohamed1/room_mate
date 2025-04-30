@@ -62,6 +62,8 @@ const Header = ({ onSearch, categories = [] }: HeaderProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
+  console.log(isAdmin);
+
   // Initialize search from URL params when component mounts
   useEffect(() => {
     const query = searchParams.get("search") || "";
@@ -346,6 +348,15 @@ const Header = ({ onSearch, categories = [] }: HeaderProps) => {
 
           {/* Desktop User Menu */}
           <div className="hidden md:flex items-center space-x-3">
+            {isAdmin && (
+              <Link
+                href="/dashboard"
+                className="text-gray-700 hover:text-primary transition-colors py-1 cursor-pointer flex items-center space-x-2"
+              >
+                <LayoutDashboard className="h-4 w-4" />
+                <span>Dashboard</span>
+              </Link>
+            )}
             <UserMenu
               onLoginClick={() => setIsLoginModalOpen(true)}
               onRegisterClick={() => setIsRegisterModalOpen(true)}

@@ -32,7 +32,7 @@ export default async function Home() {
       <div className="min-h-screen bg-gray-50">
         <WelcomeDialog />
 
-        <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 pb-24 md:pb-12">
+        <main className="container min-h-screen mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 pb-24 md:pb-12">
           <Suspense fallback={<PropertySectionSkeleton />}>
             <PropertySection />
           </Suspense>

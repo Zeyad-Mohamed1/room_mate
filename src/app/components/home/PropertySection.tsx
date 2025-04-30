@@ -7,6 +7,7 @@ import { Filter, X } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { PaymentTime } from "@/types";
 import { useHomePage } from "./HomePageContext";
+import { useQuery } from "@tanstack/react-query";
 
 interface PropertyWithRelations extends Property {
   category: {
@@ -20,14 +21,9 @@ interface PropertyWithRelations extends Property {
 }
 
 export default function PropertySection() {
-  const [properties, setProperties] = useState<PropertyWithRelations[]>([]);
   const [filteredProperties, setFilteredProperties] = useState<
     PropertyWithRelations[]
   >([]);
-  const [categories, setCategories] = useState<{ id: string; name: string }[]>(
-    []
-  );
-  const [isLoading, setIsLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
 
   // Get search params from context and methods to update it
@@ -38,40 +34,45 @@ export default function PropertySection() {
   const [propertyType, setPropertyType] = useState<string[]>([]);
   const [bedroomCount, setBedroomCount] = useState<string[]>([]);
 
-  // Fetch properties and categories when component mounts
+  // Fetch properties using React Query
+  const { data: properties = [], isLoading: propertiesLoading } = useQuery({
+    queryKey: ["properties"],
+    queryFn: () => fetch("/api/properties").then((res) => res.json()),
+  });
+
+  // Fetch categories using React Query
+  const { data: categoriesData, isLoading: categoriesLoading } = useQuery({
+    queryKey: ["categories"],
+    queryFn: () => fetch("/api/categories").then((res) => res.json()),
+  });
+
+  // Extract categories from response
+  const categories = categoriesData?.categories || [];
+
+  // Determine overall loading state
+  const isLoading = propertiesLoading || categoriesLoading;
+
+  // Apply filters whenever dependencies change
   useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      try {
-        const [propertiesResponse, categoriesResponse] = await Promise.all([
-          fetch("/api/properties"),
-          fetch("/api/categories"),
-        ]);
-
-        if (!propertiesResponse.ok || !categoriesResponse.ok) {
-          throw new Error("Failed to fetch data");
-        }
-
-        const propertiesData = await propertiesResponse.json();
-        const categoriesData = await categoriesResponse.json();
-
-        setProperties(propertiesData);
-        setCategories(categoriesData.categories || []);
-
-        // Initialize filtered properties with all properties
-        filterProperties(propertiesData, searchQuery, selectedCategory);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        setProperties([]);
-        setCategories([]);
-        setFilteredProperties([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [searchQuery, selectedCategory]);
+    if (properties.length > 0) {
+      filterProperties(
+        properties,
+        searchQuery,
+        selectedCategory,
+        priceRange[0],
+        priceRange[1],
+        propertyType,
+        bedroomCount
+      );
+    }
+  }, [
+    properties,
+    searchQuery,
+    selectedCategory,
+    priceRange,
+    propertyType,
+    bedroomCount,
+  ]);
 
   // Handle filtering of properties
   const filterProperties = (
@@ -140,14 +141,6 @@ export default function PropertySection() {
       : [...propertyType, type];
 
     setPropertyType(newTypes);
-    filterProperties(
-      properties,
-      searchQuery,
-      selectedCategory,
-      priceRange[0],
-      priceRange[1],
-      newTypes
-    );
   };
 
   // Toggle bedroom count filter
@@ -157,22 +150,12 @@ export default function PropertySection() {
       : [...bedroomCount, count];
 
     setBedroomCount(newCounts);
-    filterProperties(
-      properties,
-      searchQuery,
-      selectedCategory,
-      priceRange[0],
-      priceRange[1],
-      propertyType,
-      newCounts
-    );
   };
 
   // Handle category change
   const handleCategoryChange = (categoryId: string) => {
     const newCategory = selectedCategory === categoryId ? "" : categoryId;
     setSelectedCategory(newCategory);
-    filterProperties(properties, searchQuery, newCategory);
   };
 
   return (
@@ -219,7 +202,7 @@ export default function PropertySection() {
             <div>
               <h4 className="font-medium mb-2 text-sm">Category</h4>
               <div className="flex flex-wrap gap-2">
-                {categories.map((category) => (
+                {categories.map((category: { id: string; name: string }) => (
                   <button
                     key={category.id}
                     onClick={() => handleCategoryChange(category.id)}
@@ -273,13 +256,6 @@ export default function PropertySection() {
                   onChange={(e) => {
                     const newMin = parseInt(e.target.value);
                     setPriceRange([newMin, priceRange[1]]);
-                    filterProperties(
-                      properties,
-                      searchQuery,
-                      selectedCategory,
-                      newMin,
-                      priceRange[1]
-                    );
                   }}
                   className="w-24 px-2 py-1 border border-gray-300 rounded-md text-sm"
                 />
@@ -291,13 +267,6 @@ export default function PropertySection() {
                   onChange={(e) => {
                     const newMax = parseInt(e.target.value);
                     setPriceRange([priceRange[0], newMax]);
-                    filterProperties(
-                      properties,
-                      searchQuery,
-                      selectedCategory,
-                      priceRange[0],
-                      newMax
-                    );
                   }}
                   className="w-24 px-2 py-1 border border-gray-300 rounded-md text-sm"
                 />
