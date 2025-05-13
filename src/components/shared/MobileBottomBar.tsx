@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   MessageSquare,
   Plus,
@@ -7,7 +7,6 @@ import {
   Heart,
   FileText,
   DollarSign,
-  Calendar,
 } from "lucide-react";
 import AddPropertyModal from "./AddPropertyModal";
 import { useUserStore } from "@/store/useUserStore";
@@ -32,6 +31,44 @@ const MobileBottomBar = () => {
   const setActiveTab = useTabStore((state) => state.setActiveTab);
   const pathname = usePathname();
   const router = useRouter();
+  const [isVisible, setIsVisible] = useState(true);
+  const lastScrollY = useRef(0);
+  const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+
+      // Determine if scrolling down
+      if (currentScrollY > lastScrollY.current + 10) {
+        setIsVisible(false);
+      } else if (currentScrollY < lastScrollY.current - 10) {
+        // Show when scrolling up
+        setIsVisible(true);
+      }
+
+      lastScrollY.current = currentScrollY;
+
+      // Clear previous timeout
+      if (scrollTimeout.current) {
+        clearTimeout(scrollTimeout.current);
+      }
+
+      // Set a timeout to show the bar after scrolling stops
+      scrollTimeout.current = setTimeout(() => {
+        setIsVisible(true);
+      }, 500);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (scrollTimeout.current) {
+        clearTimeout(scrollTimeout.current);
+      }
+    };
+  }, []);
 
   // Check if current path is admin dashboard
   const isAdminDashboard = pathname?.includes("/dashboard");
@@ -48,8 +85,6 @@ const MobileBottomBar = () => {
       router.push("/my-ads");
     } else if (tab === "my-offers") {
       router.push("/my-offers");
-    } else if (tab === "bookings") {
-      router.push("/bookings");
     } else if (tab === "notifications") {
       router.push("/notifications");
     } else if (tab === "favorites") {
@@ -59,25 +94,25 @@ const MobileBottomBar = () => {
 
   return (
     <>
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 md:hidden shadow-lg">
+      <div
+        className={`fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 md:hidden shadow-lg transition-transform duration-300 ${isVisible ? 'translate-y-0' : 'translate-y-full'
+          }`}
+      >
         <div className="flex justify-around items-center h-16 px-1">
           <button
             onClick={() => handleTabClick("my-ads")}
-            className={`flex flex-col items-center justify-center w-full h-full relative transition-all duration-200 ${
-              activeTab === "my-ads"
+            className={`flex flex-col items-center justify-center w-full h-full relative transition-all duration-200 ${activeTab === "my-ads"
                 ? "text-primary"
                 : "text-gray-500 hover:text-gray-700"
-            }`}
+              }`}
           >
             <FileText
-              className={`h-5 w-5 ${
-                activeTab === "my-ads" ? "stroke-[2.5px]" : ""
-              }`}
+              className={`h-5 w-5 ${activeTab === "my-ads" ? "stroke-[2.5px]" : ""
+                }`}
             />
             <span
-              className={`text-xs mt-1 font-medium ${
-                activeTab === "my-ads" ? "text-primary" : "text-gray-500"
-              }`}
+              className={`text-xs mt-1 font-medium ${activeTab === "my-ads" ? "text-primary" : "text-gray-500"
+                }`}
             >
               My Ads
             </span>
@@ -88,21 +123,18 @@ const MobileBottomBar = () => {
 
           <button
             onClick={() => handleTabClick("my-offers")}
-            className={`flex flex-col items-center justify-center w-full h-full relative transition-all duration-200 ${
-              activeTab === "my-offers"
+            className={`flex flex-col items-center justify-center w-full h-full relative transition-all duration-200 ${activeTab === "my-offers"
                 ? "text-primary"
                 : "text-gray-500 hover:text-gray-700"
-            }`}
+              }`}
           >
             <DollarSign
-              className={`h-5 w-5 ${
-                activeTab === "my-offers" ? "stroke-[2.5px]" : ""
-              }`}
+              className={`h-5 w-5 ${activeTab === "my-offers" ? "stroke-[2.5px]" : ""
+                }`}
             />
             <span
-              className={`text-xs mt-1 font-medium ${
-                activeTab === "my-offers" ? "text-primary" : "text-gray-500"
-              }`}
+              className={`text-xs mt-1 font-medium ${activeTab === "my-offers" ? "text-primary" : "text-gray-500"
+                }`}
             >
               Offers
             </span>
@@ -111,52 +143,36 @@ const MobileBottomBar = () => {
             )}
           </button>
 
-          {/* Bookings Button */}
+          {/* Add Property Button */}
           <button
-            onClick={() => handleTabClick("bookings")}
-            className={`flex flex-col items-center justify-center w-full h-full relative transition-all duration-200 ${
-              activeTab === "bookings"
-                ? "text-primary"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
+            onClick={() => setIsAddPropertyModalOpen(true)}
+            className="flex flex-col items-center justify-center w-full h-full relative transition-all duration-200 text-primary"
           >
-            <Calendar
-              className={`h-5 w-5 ${
-                activeTab === "bookings" ? "stroke-[2.5px]" : ""
-              }`}
-            />
-            <span
-              className={`text-xs mt-1 font-medium ${
-                activeTab === "bookings" ? "text-primary" : "text-gray-500"
-              }`}
-            >
-              Bookings
+            <div className="bg-primary text-white rounded-full p-3">
+              <Plus className="h-5 w-5" />
+            </div>
+            <span className="text-xs mt-1 font-medium text-primary">
+              Add
             </span>
-            {activeTab === "bookings" && (
-              <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1/2 h-0.5 bg-primary rounded-full"></div>
-            )}
           </button>
 
           <button
             onClick={() => handleTabClick("notifications")}
-            className={`flex flex-col items-center justify-center w-full h-full relative transition-all duration-200 ${
-              activeTab === "notifications"
+            className={`flex flex-col items-center justify-center w-full h-full relative transition-all duration-200 ${activeTab === "notifications"
                 ? "text-primary"
                 : "text-gray-500 hover:text-gray-700"
-            }`}
+              }`}
           >
             <div className="relative">
               <Bell
-                className={`h-5 w-5 ${
-                  activeTab === "notifications" ? "stroke-[2.5px]" : ""
-                }`}
+                className={`h-5 w-5 ${activeTab === "notifications" ? "stroke-[2.5px]" : ""
+                  }`}
               />
               <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></div>
             </div>
             <span
-              className={`text-xs mt-1 font-medium ${
-                activeTab === "notifications" ? "text-primary" : "text-gray-500"
-              }`}
+              className={`text-xs mt-1 font-medium ${activeTab === "notifications" ? "text-primary" : "text-gray-500"
+                }`}
             >
               Alerts
             </span>
@@ -167,21 +183,18 @@ const MobileBottomBar = () => {
 
           <button
             onClick={() => handleTabClick("favorites")}
-            className={`flex flex-col items-center justify-center w-full h-full relative transition-all duration-200 ${
-              activeTab === "favorites"
+            className={`flex flex-col items-center justify-center w-full h-full relative transition-all duration-200 ${activeTab === "favorites"
                 ? "text-primary"
                 : "text-gray-500 hover:text-gray-700"
-            }`}
+              }`}
           >
             <Heart
-              className={`h-5 w-5 ${
-                activeTab === "favorites" ? "stroke-[2.5px]" : ""
-              }`}
+              className={`h-5 w-5 ${activeTab === "favorites" ? "stroke-[2.5px]" : ""
+                }`}
             />
             <span
-              className={`text-xs mt-1 font-medium ${
-                activeTab === "favorites" ? "text-primary" : "text-gray-500"
-              }`}
+              className={`text-xs mt-1 font-medium ${activeTab === "favorites" ? "text-primary" : "text-gray-500"
+                }`}
             >
               Favorites
             </span>

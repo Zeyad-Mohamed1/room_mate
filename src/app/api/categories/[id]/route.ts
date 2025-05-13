@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { writeFile, mkdir, unlink } from "fs/promises";
+import path from "path";
+import { existsSync } from "fs";
+import { v4 as uuidv4 } from "uuid";
 
 // Get a specific category
 export async function GET(
@@ -38,7 +42,9 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
-    const { name } = await req.json();
+    const formData = await req.formData();
+    const name = formData.get("name") as string;
+    const iconFile = formData.get("icon") as File | null;
 
     if (!name) {
       return NextResponse.json(
@@ -60,12 +66,58 @@ export async function PUT(
       );
     }
 
+    // Handle icon upload if provided
+    let iconUrl = existingCategory.icon; // Keep existing icon by default
+    if (iconFile) {
+      // Create uploads/icons directory if it doesn't exist
+      const uploadsDir = path.join(process.cwd(), "public", "uploads");
+      const iconsDir = path.join(uploadsDir, "icons");
+
+      if (!existsSync(uploadsDir)) {
+        await mkdir(uploadsDir, { recursive: true });
+      }
+
+      if (!existsSync(iconsDir)) {
+        await mkdir(iconsDir, { recursive: true });
+      }
+
+      // Delete old icon if exists
+      if (existingCategory.icon) {
+        try {
+          const oldIconPath = path.join(
+            process.cwd(),
+            "public",
+            existingCategory.icon
+          );
+          if (existsSync(oldIconPath)) {
+            await unlink(oldIconPath);
+          }
+        } catch (error) {
+          console.error("Error deleting old icon:", error);
+          // Continue even if deleting old icon fails
+        }
+      }
+
+      // Generate unique filename for the new icon
+      const fileExtension = path.extname(iconFile.name);
+      const fileName = `${uuidv4()}${fileExtension}`;
+      const filePath = path.join(iconsDir, fileName);
+
+      // Convert the file to buffer and save it
+      const buffer = Buffer.from(await iconFile.arrayBuffer());
+      await writeFile(filePath, buffer);
+
+      // Set the new icon URL to be stored in the database
+      iconUrl = `/uploads/icons/${fileName}`;
+    }
+
     const updatedCategory = await prisma.category.update({
       where: {
         id: id,
       },
       data: {
         name,
+        icon: iconUrl,
       },
     });
 
@@ -114,6 +166,23 @@ export async function DELETE(
         },
         { status: 400 }
       );
+    }
+
+    // Delete the category icon if exists
+    if (existingCategory.icon) {
+      try {
+        const iconPath = path.join(
+          process.cwd(),
+          "public",
+          existingCategory.icon
+        );
+        if (existsSync(iconPath)) {
+          await unlink(iconPath);
+        }
+      } catch (error) {
+        console.error("Error deleting category icon:", error);
+        // Continue deletion even if icon deletion fails
+      }
     }
 
     // Delete the category

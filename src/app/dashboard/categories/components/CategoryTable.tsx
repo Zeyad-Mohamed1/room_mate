@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
-import { Edit, Trash2, ChevronUp, ChevronDown, Plus } from "lucide-react";
+import { useState, useCallback, useMemo, useEffect } from "react";
+import { Edit, Trash2, ChevronUp, ChevronDown, Plus, Image, X } from "lucide-react";
 import { Category } from "../types";
 import DeleteCategoryDialog from "./DeleteCategoryDialog";
 import {
@@ -46,7 +46,11 @@ const CategoryTable = ({
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryIcon, setNewCategoryIcon] = useState<File | null>(null);
+  const [newIconPreview, setNewIconPreview] = useState<string | null>(null);
   const [editCategory, setEditCategory] = useState<Category | null>(null);
+  const [editCategoryIcon, setEditCategoryIcon] = useState<File | null>(null);
+  const [editIconPreview, setEditIconPreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSort = useCallback(
@@ -92,12 +96,23 @@ const CategoryTable = ({
 
     setIsSubmitting(true);
     try {
-      await axios.post("/api/categories", {
-        name: newCategoryName,
+      const formData = new FormData();
+      formData.append("name", newCategoryName);
+
+      if (newCategoryIcon) {
+        formData.append("icon", newCategoryIcon);
+      }
+
+      await axios.post("/api/categories", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       });
 
       toast.success("Category created successfully");
       setNewCategoryName("");
+      setNewCategoryIcon(null);
+      setNewIconPreview(null);
       setIsCreateDialogOpen(false);
       onCreateSuccess();
     } catch (error) {
@@ -109,7 +124,7 @@ const CategoryTable = ({
     } finally {
       setIsSubmitting(false);
     }
-  }, [newCategoryName, onCreateSuccess]);
+  }, [newCategoryName, newCategoryIcon, onCreateSuccess]);
 
   // Update category
   const handleUpdateCategory = useCallback(async () => {
@@ -120,12 +135,23 @@ const CategoryTable = ({
 
     setIsSubmitting(true);
     try {
-      await axios.put(`/api/categories/${editCategory?.id}`, {
-        name: editCategory?.name,
+      const formData = new FormData();
+      formData.append("name", editCategory?.name || "");
+
+      if (editCategoryIcon) {
+        formData.append("icon", editCategoryIcon);
+      }
+
+      await axios.put(`/api/categories/${editCategory?.id}`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       });
 
       toast.success("Category updated successfully");
       setIsEditDialogOpen(false);
+      setEditCategoryIcon(null);
+      setEditIconPreview(null);
       onUpdateSuccess();
     } catch (error) {
       if (error instanceof Error) {
@@ -136,7 +162,7 @@ const CategoryTable = ({
     } finally {
       setIsSubmitting(false);
     }
-  }, [editCategory, onUpdateSuccess]);
+  }, [editCategory, editCategoryIcon, onUpdateSuccess]);
 
   // Handle name change for create dialog
   const handleNewCategoryNameChange = useCallback(
@@ -155,6 +181,46 @@ const CategoryTable = ({
     },
     [editCategory]
   );
+
+  // Handle icon change for create dialog
+  const handleNewCategoryIconChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files[0]) {
+        const file = e.target.files[0];
+        setNewCategoryIcon(file);
+        setNewIconPreview(URL.createObjectURL(file));
+      }
+    },
+    []
+  );
+
+  // Handle icon change for edit dialog
+  const handleEditCategoryIconChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files[0]) {
+        const file = e.target.files[0];
+        setEditCategoryIcon(file);
+        setEditIconPreview(URL.createObjectURL(file));
+      }
+    },
+    []
+  );
+
+  // Clean up previews on unmount
+  useEffect(() => {
+    return () => {
+      if (newIconPreview) URL.revokeObjectURL(newIconPreview);
+      if (editIconPreview) URL.revokeObjectURL(editIconPreview);
+    };
+  }, [newIconPreview, editIconPreview]);
+
+  // Clear edit category fields
+  const handleEditCategoryOpen = useCallback((category: Category) => {
+    setEditCategory(category);
+    setEditCategoryIcon(null);
+    setEditIconPreview(category.icon || null);
+    setIsEditDialogOpen(true);
+  }, []);
 
   // Table header component with sorting
   const SortableTableHead = useCallback(
@@ -203,6 +269,49 @@ const CategoryTable = ({
                 onChange={handleNewCategoryNameChange}
               />
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="icon">Category Icon</Label>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => document.getElementById('new-icon-upload')?.click()}
+                  className="flex items-center gap-1"
+                >
+                  <Image className="h-4 w-4" />
+                  Upload Icon
+                </Button>
+                <Input
+                  id="new-icon-upload"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleNewCategoryIconChange}
+                />
+                {newIconPreview && (
+                  <div className="relative h-12 w-12">
+                    <img
+                      src={newIconPreview}
+                      alt="Icon preview"
+                      className="h-full w-full object-cover rounded-md"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute -top-2 -right-2 h-6 w-6 bg-red-500 text-white rounded-full p-1"
+                      onClick={() => {
+                        setNewCategoryIcon(null);
+                        setNewIconPreview(null);
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button
@@ -225,6 +334,7 @@ const CategoryTable = ({
     [
       isCreateDialogOpen,
       newCategoryName,
+      newIconPreview,
       isSubmitting,
       handleCreateCategory,
       handleNewCategoryNameChange,
@@ -249,6 +359,49 @@ const CategoryTable = ({
                 onChange={handleEditCategoryNameChange}
               />
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-icon">Category Icon</Label>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => document.getElementById('edit-icon-upload')?.click()}
+                  className="flex items-center gap-1"
+                >
+                  <Image className="h-4 w-4" />
+                  {editIconPreview ? "Change Icon" : "Upload Icon"}
+                </Button>
+                <Input
+                  id="edit-icon-upload"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleEditCategoryIconChange}
+                />
+                {editIconPreview && (
+                  <div className="relative h-12 w-12">
+                    <img
+                      src={editIconPreview}
+                      alt="Icon preview"
+                      className="h-full w-full object-cover rounded-md"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute -top-2 -right-2 h-6 w-6 bg-red-500 text-white rounded-full p-1"
+                      onClick={() => {
+                        setEditCategoryIcon(null);
+                        setEditIconPreview(null);
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button
@@ -271,6 +424,7 @@ const CategoryTable = ({
     [
       isEditDialogOpen,
       editCategory,
+      editIconPreview,
       isSubmitting,
       handleUpdateCategory,
       handleEditCategoryNameChange,
@@ -286,6 +440,8 @@ const CategoryTable = ({
           className="flex items-center gap-1"
           onClick={() => {
             setNewCategoryName("");
+            setNewCategoryIcon(null);
+            setNewIconPreview(null);
             setIsCreateDialogOpen(true);
           }}
         >
@@ -297,6 +453,7 @@ const CategoryTable = ({
         <TableHeader>
           <TableRow>
             <SortableTableHead field="id" label="#" className="w-12" />
+            <TableHead className="w-16">Icon</TableHead>
             <SortableTableHead field="name" label="Name" className="w-1/3" />
             <SortableTableHead
               field="createdAt"
@@ -314,13 +471,13 @@ const CategoryTable = ({
         <TableBody>
           {isLoading ? (
             <TableRow>
-              <TableCell colSpan={5} className="h-24 text-center">
+              <TableCell colSpan={6} className="h-24 text-center">
                 Loading categories...
               </TableCell>
             </TableRow>
           ) : sortedCategories.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="h-24 text-center">
+              <TableCell colSpan={6} className="h-24 text-center">
                 No categories found.
               </TableCell>
             </TableRow>
@@ -328,6 +485,19 @@ const CategoryTable = ({
             sortedCategories.map((category, index) => (
               <TableRow key={category.id}>
                 <TableCell className="font-medium">{index + 1}</TableCell>
+                <TableCell>
+                  {category.icon ? (
+                    <img
+                      src={category.icon}
+                      alt={category.name}
+                      className="h-8 w-8 rounded-md object-cover"
+                    />
+                  ) : (
+                    <div className="h-8 w-8 bg-gray-200 rounded-md flex items-center justify-center">
+                      <Image className="h-4 w-4 text-gray-500" />
+                    </div>
+                  )}
+                </TableCell>
                 <TableCell>{category.name}</TableCell>
                 <TableCell>{formatDate(category.createdAt)}</TableCell>
                 <TableCell>{formatDate(category.updatedAt)}</TableCell>
@@ -337,10 +507,7 @@ const CategoryTable = ({
                       className="bg-gray-100 hover:bg-gray-200"
                       variant="outline"
                       size="icon"
-                      onClick={() => {
-                        setEditCategory(category);
-                        setIsEditDialogOpen(true);
-                      }}
+                      onClick={() => handleEditCategoryOpen(category)}
                     >
                       <Edit className="h-4 w-4" />
                     </Button>

@@ -1,62 +1,64 @@
 "use client";
 
 import { useState } from "react";
+import { Offer } from "@prisma/client";
+import { formatDate } from "@/lib/utils";
 import {
   Tag,
-  Percent,
-  GiftIcon,
+  MessageCircle,
   Clock,
   Check,
-  ArrowRight,
-  AlertCircle,
+  X,
+  DollarSign,
+  Phone,
+  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-interface PropertyOffersProps {
+type OfferStatus = "pending" | "accepted" | "rejected" | "cancelled";
+
+interface OfferWithUser {
+  id: string;
+  message: string;
+  price: string;
+  phone: string;
+  duration: string | null;
+  deposit: boolean;
+  status: OfferStatus;
+  createdAt: Date;
+  updatedAt: Date;
   propertyId: string;
+  userId: string;
+  user: {
+    id: string;
+    name: string | null;
+    email: string | null;
+    phone: string | null;
+  };
 }
 
-// Sample offers data - in a real app, this would come from the database
-const sampleOffers = [
-  {
-    id: "1",
-    title: "First Month Free",
-    description: "Sign a 12-month lease and get your first month's rent free!",
-    discount: "100%",
-    expires: "2023-12-31",
-    type: "discount",
-    terms:
-      "Valid for new tenants only. Must sign a 12-month lease agreement to qualify.",
-  },
-  {
-    id: "2",
-    title: "Move-In Special",
-    description: "No security deposit required for qualified applicants.",
-    discount: null,
-    expires: "2023-11-30",
-    type: "special",
-    terms:
-      "Subject to background check and credit approval. Other fees may apply.",
-  },
-  {
-    id: "3",
-    title: "Refer a Friend",
-    description:
-      "Get $500 off your rent when you refer a friend who signs a lease.",
-    discount: "$500",
-    expires: null,
-    type: "referral",
-    terms:
-      "Referred friend must sign a minimum 6-month lease. Discount applied after friend's move-in.",
-  },
-];
+interface PropertyOffersProps {
+  propertyId: string;
+  offers: OfferWithUser[];
+}
 
-export default function PropertyOffers({ propertyId }: PropertyOffersProps) {
-  const [offers] = useState(sampleOffers);
+export default function PropertyOffers({ propertyId, offers }: PropertyOffersProps) {
   const [expandedOffer, setExpandedOffer] = useState<string | null>(null);
 
   if (!offers || offers.length === 0) {
-    return null;
+    return (
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-gray-100">
+          <h2 className="text-xl font-semibold flex items-center">
+            <MessageCircle className="h-6 w-6 mr-2 text-blue-500" />
+            Property Offers
+          </h2>
+          <p className="text-gray-600 text-sm mt-1">
+            No offers have been submitted for this property yet
+          </p>
+        </div>
+      </div>
+    );
   }
 
   const toggleExpandOffer = (id: string) => {
@@ -67,132 +69,84 @@ export default function PropertyOffers({ propertyId }: PropertyOffersProps) {
     }
   };
 
-  const getIconForOfferType = (type: string) => {
-    switch (type) {
-      case "discount":
-        return <Percent className="h-10 w-10 text-blue-500" />;
-      case "referral":
-        return <GiftIcon className="h-10 w-10 text-blue-500" />;
-      default:
-        return <Tag className="h-10 w-10 text-blue-500" />;
-    }
-  };
-
   return (
     <div className="bg-white rounded-xl shadow-sm overflow-hidden">
       <div className="p-6 border-b border-gray-100">
         <h2 className="text-xl font-semibold flex items-center">
-          <Tag className="h-6 w-6 mr-2 text-blue-500" />
-          Special Offers & Discounts
+          <MessageCircle className="h-6 w-6 mr-2 text-blue-500" />
+          Property Offers
         </h2>
         <p className="text-gray-600 text-sm mt-1">
-          Exclusive deals available with this property
+          {offers.length} offer{offers.length !== 1 ? "s" : ""} submitted for this property
         </p>
       </div>
 
       <div className="px-6 pb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+        <div className="space-y-4 mt-6">
           {offers.map((offer) => (
             <div
               key={offer.id}
               className="border border-gray-200 hover:border-blue-200 rounded-lg overflow-hidden transition-all duration-200 hover:shadow-md"
             >
-              {/* Header with accent color based on offer type */}
-              <div
-                className={`py-3 px-4 border-b border-gray-100 ${
-                  offer.type === "discount"
-                    ? "bg-blue-50"
-                    : offer.type === "referral"
-                    ? "bg-green-50"
-                    : "bg-purple-50"
-                }`}
-              >
-                <span
-                  className={`text-xs font-medium px-2.5 py-1 rounded-full ${
-                    offer.type === "discount"
-                      ? "bg-blue-100 text-blue-800"
-                      : offer.type === "referral"
-                      ? "bg-green-100 text-green-800"
-                      : "bg-purple-100 text-purple-800"
-                  }`}
-                >
-                  {offer.type === "discount"
-                    ? "Discount"
-                    : offer.type === "referral"
-                    ? "Referral Program"
-                    : "Special Offer"}
+              {/* Header with status indicator */}
+              <div className="p-4 border-b border-gray-100 flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <User className="h-5 w-5 text-gray-600" />
+                  <span className="font-medium">{offer.user.name || "Anonymous User"}</span>
+                </div>
+                <span className={`text-xs px-2.5 py-1 rounded-full flex items-center ${offer.status === "pending"
+                  ? "bg-amber-100 text-amber-800"
+                  : offer.status === "accepted"
+                    ? "bg-green-100 text-green-800"
+                    : "bg-red-100 text-red-800"
+                  }`}>
+                  {offer.status === "pending" && (
+                    <>
+                      <Clock className="h-3 w-3 mr-1" /> Pending
+                    </>
+                  )}
+                  {offer.status === "accepted" && (
+                    <>
+                      <Check className="h-3 w-3 mr-1" /> Accepted
+                    </>
+                  )}
+                  {offer.status === "rejected" && (
+                    <>
+                      <X className="h-3 w-3 mr-1" /> Rejected
+                    </>
+                  )}
                 </span>
               </div>
 
               {/* Offer content */}
               <div className="p-4">
-                <div className="flex items-start gap-3">
-                  {getIconForOfferType(offer.type)}
-                  <div>
-                    <h3 className="font-semibold text-lg">{offer.title}</h3>
-                    <p className="text-gray-600 text-sm">{offer.description}</p>
+                <div className="space-y-3">
+                  <div className="flex items-center text-green-700">
+                    <DollarSign className="h-4 w-4 mr-1" />
+                    <span className="font-medium">Price Offer: ${offer.price}</span>
+                  </div>
 
-                    {offer.discount && (
-                      <p className="text-blue-600 font-medium mt-2 flex items-center">
-                        <Check className="h-4 w-4 mr-1" />
-                        Save {offer.discount}
-                      </p>
-                    )}
-
-                    {offer.expires && (
-                      <div className="flex items-center text-amber-600 text-sm mt-2 font-medium">
-                        <Clock className="h-4 w-4 mr-1" />
-                        Limited time offer • Expires{" "}
-                        {new Date(offer.expires).toLocaleDateString()}
-                      </div>
-                    )}
-
-                    {/* Expandable terms section */}
-                    <div className="mt-4 pt-3 border-t border-gray-100">
-                      <button
-                        onClick={() => toggleExpandOffer(offer.id)}
-                        className="text-sm text-blue-600 hover:text-blue-800 flex items-center transition-colors"
-                      >
-                        {expandedOffer === offer.id
-                          ? "Hide terms"
-                          : "View terms"}
-                        <ArrowRight
-                          className={`h-3 w-3 ml-1 transition-transform ${
-                            expandedOffer === offer.id ? "rotate-90" : ""
-                          }`}
-                        />
-                      </button>
-
-                      {expandedOffer === offer.id && (
-                        <div className="mt-3 text-xs text-gray-600 bg-gray-50 p-3 rounded-lg flex items-start">
-                          <AlertCircle className="h-4 w-4 mr-2 text-gray-400 flex-shrink-0 mt-0.5" />
-                          <p>{offer.terms}</p>
-                        </div>
-                      )}
+                  {offer.duration && (
+                    <div className="text-gray-700 text-sm">
+                      <span className="font-medium">Duration:</span> {offer.duration}
                     </div>
+                  )}
+
+                  <div className="text-gray-700 text-sm">
+                    <span className="font-medium">Deposit:</span> {offer.deposit ? "Required" : "Not required"}
+                  </div>
+
+                  <div className="text-gray-700 text-sm">
+                    <span className="font-medium">Message:</span> {offer.message}
+                  </div>
+
+                  <div className="text-gray-500 text-xs">
+                    Submitted on {formatDate(offer.createdAt.toString())}
                   </div>
                 </div>
               </div>
-
-              {/* Footer with claim button */}
-              <div className="px-4 py-3 bg-gray-50 border-t border-gray-100">
-                <Button
-                  variant="outline"
-                  className="w-full gap-2 hover:bg-white hover:text-blue-600 hover:border-blue-600"
-                >
-                  Claim this offer
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              </div>
             </div>
           ))}
-        </div>
-
-        <div className="flex justify-center mt-8">
-          <Button variant="link" className="gap-2">
-            View all available offers
-            <ArrowRight className="h-4 w-4" />
-          </Button>
         </div>
       </div>
     </div>

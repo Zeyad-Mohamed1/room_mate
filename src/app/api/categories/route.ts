@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { writeFile, mkdir } from "fs/promises";
+import path from "path";
+import { existsSync } from "fs";
+import { v4 as uuidv4 } from "uuid";
 
 export async function GET(req: Request) {
   try {
@@ -37,7 +41,9 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const { name } = await req.json();
+    const formData = await req.formData();
+    const name = formData.get("name") as string;
+    const iconFile = formData.get("icon") as File | null;
 
     if (!name) {
       return NextResponse.json(
@@ -63,9 +69,39 @@ export async function POST(req: Request) {
       );
     }
 
+    // Handle icon upload if provided
+    let iconUrl = null;
+    if (iconFile) {
+      // Create uploads/icons directory if it doesn't exist
+      const uploadsDir = path.join(process.cwd(), "public", "uploads");
+      const iconsDir = path.join(uploadsDir, "icons");
+
+      if (!existsSync(uploadsDir)) {
+        await mkdir(uploadsDir, { recursive: true });
+      }
+
+      if (!existsSync(iconsDir)) {
+        await mkdir(iconsDir, { recursive: true });
+      }
+
+      // Generate unique filename for the icon
+      const fileExtension = path.extname(iconFile.name);
+      const fileName = `${uuidv4()}${fileExtension}`;
+      const filePath = path.join(iconsDir, fileName);
+
+      // Convert the file to buffer and save it
+      const buffer = Buffer.from(await iconFile.arrayBuffer());
+      await writeFile(filePath, buffer);
+
+      // Set the icon URL to be stored in the database
+      iconUrl = `/uploads/icons/${fileName}`;
+    }
+
+    // Create category with icon if provided
     const category = await prisma.category.create({
       data: {
         name,
+        icon: iconUrl,
       },
     });
 

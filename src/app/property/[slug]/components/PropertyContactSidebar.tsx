@@ -11,6 +11,8 @@ import { formatPriceWithTime } from "@/utils/formatters";
 import { PaymentTime } from "@/types";
 import { useUserStore } from "@/store/useUserStore";
 import { toast } from "react-hot-toast";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface OwnerInfo {
   id: string;
@@ -40,6 +42,8 @@ export default function PropertyContactSidebar({
   const [message, setMessage] = useState("");
   const [offerPrice, setOfferPrice] = useState("");
   const [phone, setPhone] = useState("");
+  const [duration, setDuration] = useState("6");
+  const [payDeposit, setPayDeposit] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { user, isAuthenticated } = useUserStore();
@@ -92,6 +96,8 @@ export default function PropertyContactSidebar({
             message,
             price: offerPrice,
             phone,
+            duration,
+            deposit: payDeposit,
           }),
         });
 
@@ -105,6 +111,8 @@ export default function PropertyContactSidebar({
         setMessage("");
         setOfferPrice("");
         setPhone("");
+        setDuration("6");
+        setPayDeposit(false);
       } catch (error: any) {
         console.error("Error submitting offer:", error);
         throw error;
@@ -212,6 +220,30 @@ export default function PropertyContactSidebar({
 
               <div>
                 <label
+                  htmlFor="duration"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Duration (months)
+                </label>
+                <Select
+                  value={duration}
+                  onValueChange={(value) => setDuration(value)}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select duration" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 month</SelectItem>
+                    <SelectItem value="3">3 months</SelectItem>
+                    <SelectItem value="6">6 months</SelectItem>
+                    <SelectItem value="12">12 months</SelectItem>
+                    <SelectItem value="24">24 months</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label
                   htmlFor="phone"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
@@ -231,6 +263,20 @@ export default function PropertyContactSidebar({
                     required
                   />
                 </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="payDeposit"
+                  checked={payDeposit}
+                  onCheckedChange={(checked: boolean) => setPayDeposit(checked)}
+                />
+                <label
+                  htmlFor="payDeposit"
+                  className="text-sm font-medium text-gray-700 cursor-pointer"
+                >
+                  I am willing to pay a deposit
+                </label>
               </div>
 
               <div>

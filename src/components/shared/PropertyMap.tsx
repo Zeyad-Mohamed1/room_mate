@@ -43,7 +43,42 @@ const ChangeMapView = ({ center }: { center: [number, number] }) => {
   return null;
 };
 
-// Import marker icon images to fix the missing marker issue
+interface PropertyMapProps {
+  initialPosition: [number, number];
+  onLocationSelect: (lat: number, lng: number) => void;
+}
+
+// Internal component to handle map clicks and marker positioning
+const LocationPickerMarker = ({
+  onLocationSelect,
+  initialPosition,
+}: {
+  onLocationSelect: (lat: number, lng: number) => void;
+  initialPosition: [number, number];
+}) => {
+  const [position, setPosition] = useState<[number, number]>(initialPosition);
+
+  // Update position when initialPosition prop changes
+  useEffect(() => {
+    setPosition(initialPosition);
+  }, [initialPosition]);
+
+  const map = useMapEvents({
+    click(e) {
+      const { lat, lng } = e.latlng;
+      setPosition([lat, lng]);
+      onLocationSelect(lat, lng);
+    },
+  });
+
+  return (
+    <Marker position={position} icon={customIcon}>
+      <Popup>Selected Property Location</Popup>
+    </Marker>
+  );
+};
+
+// Main PropertyMap component
 const PropertyMap = ({
   initialPosition,
   onLocationSelect,
@@ -75,37 +110,12 @@ const PropertyMap = ({
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      <LocationPickerMarker onLocationSelect={onLocationSelect} />
+      <LocationPickerMarker
+        onLocationSelect={onLocationSelect}
+        initialPosition={initialPosition}
+      />
       <ChangeMapView center={initialPosition} />
     </MapContainer>
-  );
-};
-
-interface PropertyMapProps {
-  initialPosition: [number, number];
-  onLocationSelect: (lat: number, lng: number) => void;
-}
-
-// Internal component to handle map clicks
-const LocationPickerMarker = ({
-  onLocationSelect,
-}: {
-  onLocationSelect: (lat: number, lng: number) => void;
-}) => {
-  const [position, setPosition] = useState<[number, number] | null>(null);
-
-  const map = useMapEvents({
-    click(e) {
-      const { lat, lng } = e.latlng;
-      setPosition([lat, lng]);
-      onLocationSelect(lat, lng);
-    },
-  });
-
-  return position === null ? null : (
-    <Marker position={position} icon={customIcon}>
-      <Popup>Property location</Popup>
-    </Marker>
   );
 };
 

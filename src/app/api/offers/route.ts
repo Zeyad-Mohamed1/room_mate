@@ -22,7 +22,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const { propertyId, message, price, phone } = await request.json();
+    const { propertyId, message, price, phone, duration, deposit } =
+      await request.json();
 
     // Validate request body
     if (!propertyId || !message || !price) {
@@ -79,6 +80,8 @@ export async function POST(request: NextRequest) {
         message,
         price,
         phone,
+        duration,
+        deposit: deposit || false,
         userId: user.id,
         propertyId,
       },

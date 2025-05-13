@@ -14,8 +14,33 @@ import PropertyDetails from "./PropertyDetails";
 import PropertyContactSidebar from "./PropertyContactSidebar";
 import { Property } from "@prisma/client";
 import dynamic from "next/dynamic";
+import PropertyOffers from "./PropertyOffers";
 
 const PropertyMap = dynamic(() => import("./PropertyMap"), { ssr: false });
+
+// Define the OfferStatus type to match the one in PropertyOffers
+type OfferStatus = "pending" | "accepted" | "rejected" | "cancelled";
+
+// Define the OfferWithUser type to match the one in PropertyOffers
+interface OfferWithUser {
+  id: string;
+  message: string;
+  price: string;
+  phone: string;
+  duration: string | null;
+  deposit: boolean;
+  status: OfferStatus;
+  createdAt: Date;
+  updatedAt: Date;
+  propertyId: string;
+  userId: string;
+  user: {
+    id: string;
+    name: string | null;
+    email: string | null;
+    phone: string | null;
+  };
+}
 
 interface PropertyDetailContainerProps {
   property: Property & {
@@ -27,6 +52,7 @@ interface PropertyDetailContainerProps {
       image: string | null;
       createdAt: Date;
     } | null;
+    offers?: OfferWithUser[];
   };
   suggestedProperties: Property[];
 }
@@ -74,9 +100,9 @@ export default function PropertyDetailContainer({
       phone: property.owner?.phone || "",
       joinDate: property.owner?.createdAt
         ? new Date(property.owner.createdAt).toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "long",
-          })
+          year: "numeric",
+          month: "long",
+        })
         : "Unknown",
       image: property.owner?.image || "/images/default-avatar.png",
     },
@@ -97,6 +123,8 @@ export default function PropertyDetailContainer({
           propertyId={property.id}
           rating={property.rating}
           totalRatings={property.totalRatings}
+          adminRating={property.adminRating || undefined}
+          hasAdminRating={property.hasAdminRating || false}
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -199,6 +227,11 @@ export default function PropertyDetailContainer({
               />
             </div>
           </div>
+        </div>
+
+        {/* Property Offers - full width */}
+        <div className="mt-8">
+          <PropertyOffers propertyId={property.id} offers={property.offers || []} />
         </div>
 
         {/* Suggested properties - full width */}

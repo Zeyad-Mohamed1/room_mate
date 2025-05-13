@@ -57,7 +57,7 @@ export default function SuggestedProperties({
           </div>
 
           <Link
-            href="/search"
+            href="/"
             className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium"
           >
             View all properties
@@ -88,14 +88,7 @@ export default function SuggestedProperties({
           ))}
         </div>
 
-        <div className="text-center mt-10">
-          <p className="text-gray-600 text-sm">
-            Can't find what you're looking for?
-            <Link href="/search" className="text-blue-600 ml-1 hover:underline">
-              Try a custom search
-            </Link>
-          </p>
-        </div>
+
       </div>
     </div>
   );

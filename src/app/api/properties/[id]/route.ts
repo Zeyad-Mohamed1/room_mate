@@ -144,6 +144,7 @@ export async function PUT(
         trialPeriod: body.trialPeriod,
         goodForForeigners: body.goodForForeigners,
         allowSmoking: body.allowSmoking,
+        haveProperty: body.haveProperty,
         termsAndConditions: body.termsAndConditions,
         images: body.images,
         latitude: body.latitude,

@@ -126,15 +126,24 @@ export async function PATCH(
 
       // Only create a booking if one doesn't already exist
       if (!existingBooking) {
+        const startDate = new Date();
+
+        // Calculate end date based on duration (default to 6 months if not specified)
+        const durationMonths = offer.duration ? parseInt(offer.duration) : 6;
+        const endDate = new Date(startDate);
+        endDate.setMonth(endDate.getMonth() + durationMonths);
+
         // Create booking record
         await prisma.booking.create({
           data: {
-            startDate: new Date(), // Set appropriate start date
+            startDate,
+            endDate,
             totalAmount: offer.price,
             status: "confirmed",
             userId: offer.userId,
             propertyId: offer.propertyId,
             offerId: offer.id,
+            depositPaid: offer.deposit || false,
           },
         });
       }

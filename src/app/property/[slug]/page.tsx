@@ -52,7 +52,7 @@ export default async function PropertyPage({
         property={property as Property}
         suggestedProperties={suggestedProperties}
       />
-      {/* Property Header */}
+      {/* Property Header
       <PropertyHeader
         title={property.title || "Unnamed Property"}
         location={`${property.address}, ${property.city}, ${property.country}`}
@@ -61,7 +61,7 @@ export default async function PropertyPage({
         propertyId={property.id}
         rating={property.rating}
         totalRatings={property.totalRatings}
-      />
+      /> */}
     </div>
   );
 }

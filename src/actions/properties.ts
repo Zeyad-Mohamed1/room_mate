@@ -126,6 +126,21 @@ export async function getPropertyBySlug(slug: string) {
       },
       include: {
         owner: true,
+        offers: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                phone: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
       },
     });
     return property;

@@ -65,6 +65,7 @@ export async function POST(req: NextRequest) {
       longitude,
       genderRequired,
       roomsToComplete,
+      haveProperty,
     } = body;
 
     // Basic validation
@@ -115,6 +116,7 @@ export async function POST(req: NextRequest) {
         elevator: elevator || false,
         trialPeriod: trialPeriod || false,
         goodForForeigners: goodForForeigners || false,
+        haveProperty: haveProperty || false,
         termsAndConditions,
         images: images || [],
         latitude,

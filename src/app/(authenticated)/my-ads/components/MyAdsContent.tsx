@@ -95,9 +95,12 @@ export default function MyAdsContent() {
         </TabsContent>
       </Tabs>
 
-      {/* Add Property Modal */}
       {isAddPropertyModalOpen && (
-        <AddPropertyModal onClose={() => setIsAddPropertyModalOpen(false)} />
+        <AddPropertyModal
+          onClose={() => setIsAddPropertyModalOpen(false)}
+          isEditing={false}
+          propertyId={undefined}
+        />
       )}
     </div>
   );

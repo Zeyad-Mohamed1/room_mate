@@ -3,11 +3,13 @@
 import { useState, useEffect } from "react";
 import PropertyCard from "@/components/shared/PropertyCard";
 import { Property } from "@prisma/client";
-import { Filter, X } from "lucide-react";
-import { useSearchParams } from "next/navigation";
+import { Filter, X, ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { PaymentTime } from "@/types";
 import { useHomePage } from "./HomePageContext";
 import { useQuery } from "@tanstack/react-query";
+import Image from "next/image";
+import Link from "next/link";
 
 interface PropertyWithRelations extends Property {
   category: {
@@ -21,10 +23,12 @@ interface PropertyWithRelations extends Property {
 }
 
 export default function PropertySection() {
+  const router = useRouter();
   const [filteredProperties, setFilteredProperties] = useState<
     PropertyWithRelations[]
   >([]);
   const [showFilters, setShowFilters] = useState(false);
+  const [sliderRef, setSliderRef] = useState<HTMLDivElement | null>(null);
 
   // Get search params from context and methods to update it
   const { searchQuery, selectedCategory, setSelectedCategory } = useHomePage();
@@ -51,6 +55,24 @@ export default function PropertySection() {
 
   // Determine overall loading state
   const isLoading = propertiesLoading || categoriesLoading;
+
+  // Slider navigation functions
+  const scrollLeft = () => {
+    if (sliderRef) {
+      sliderRef.scrollBy({ left: -200, behavior: 'smooth' });
+    }
+  };
+
+  const scrollRight = () => {
+    if (sliderRef) {
+      sliderRef.scrollBy({ left: 200, behavior: 'smooth' });
+    }
+  };
+
+  // Navigate to advanced filters page
+  const goToAdvancedFilters = () => {
+    router.push('/filters');
+  };
 
   // Apply filters whenever dependencies change
   useEffect(() => {
@@ -131,7 +153,8 @@ export default function PropertySection() {
     setPriceRange([0, 10000]);
     setPropertyType([]);
     setBedroomCount([]);
-    filterProperties(properties, searchQuery, selectedCategory);
+    setSelectedCategory("");
+    filterProperties(properties, searchQuery, "");
   };
 
   // Toggle property type filter
@@ -152,42 +175,102 @@ export default function PropertySection() {
     setBedroomCount(newCounts);
   };
 
-  // Handle category change
+  // Handle category change (toggle behavior)
   const handleCategoryChange = (categoryId: string) => {
     const newCategory = selectedCategory === categoryId ? "" : categoryId;
     setSelectedCategory(newCategory);
   };
 
+  // Create a placeholder for categories without icons
+  const getCategoryPlaceholder = (name: string) => {
+    return name.charAt(0).toUpperCase();
+  };
+
   return (
     <div className="container mx-auto">
-      <div className="flex flex-col md:flex-row justify-between items-start mb-8">
-        <div>
-          <h2 className="text-2xl sm:text-3xl font-bold mb-2">
-            <div>
-              <h2 className="text-3xl font-bold text-primary mb-2 bg-gradient-to-r from-primary to-primary/70 bg-clip-text">
-                Premium Residential Properties
-              </h2>
-              <p className="text-gray-700 text-lg">
-                Browse our exclusive selection of high-quality accommodations
-                designed to meet your specific requirements
-              </p>
-            </div>
+      {/* Category Slider Section */}
+      <div className="mb-8 relative">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold text-primary">
+            Browse by Category
           </h2>
+          <div className="flex items-center gap-3">
+            {/* <button
+              className="flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              <Filter className="h-4 w-4 mr-2" />
+              {showFilters ? "Hide Filters" : "Show Filters"}
+            </button> */}
+            <Link
+              href="/filters"
+              className="flex items-center px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
+            >
+              <SlidersHorizontal className="h-4 w-4 mr-2" />
+              More Filters
+            </Link>
+          </div>
         </div>
 
-        <button
-          className="flex items-center px-4 py-2 mt-4 md:mt-0 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
-          onClick={() => setShowFilters(!showFilters)}
-        >
-          <Filter className="h-4 w-4 mr-2" />
-          {showFilters ? "Hide Filters" : "Show Filters"}
-        </button>
+        <div className="relative flex justify-center">
+          <button
+            onClick={scrollLeft}
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white/80 hover:bg-white p-2 rounded-full shadow-md transition-colors"
+            aria-label="Scroll left"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+
+          <div
+            ref={setSliderRef}
+            className="flex overflow-x-auto scrollbar-hide py-2 px-10 gap-4 scroll-smooth max-w-3xl mx-auto"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            {categories.map((category: { id: string; name: string; icon?: string }) => (
+              <div
+                key={category.id}
+                onClick={() => handleCategoryChange(category.id)}
+                className={`flex flex-col items-center justify-center min-w-[100px] p-3 rounded-lg cursor-pointer transition-all ${selectedCategory === category.id
+                  ? "bg-primary text-white shadow-md scale-105"
+                  : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                  }`}
+              >
+                <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center mb-2 shadow-sm">
+                  {category.icon ? (
+                    <Image
+                      src={category.icon}
+                      width={30}
+                      height={30}
+                      alt={category.name}
+                      className="object-cover"
+                    />
+                  ) : (
+                    <span className="text-xl font-bold text-primary">
+                      {getCategoryPlaceholder(category.name)}
+                    </span>
+                  )}
+                </div>
+                <span className="text-sm font-medium text-center">
+                  {category.name}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <button
+            onClick={scrollRight}
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white/80 hover:bg-white p-2 rounded-full shadow-md transition-colors"
+            aria-label="Scroll right"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        </div>
       </div>
 
       {showFilters && (
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold">Filters</h3>
+            <h3 className="text-lg font-semibold">Quick Filters</h3>
             <button
               onClick={resetFilters}
               className="text-primary text-sm font-medium hover:underline flex items-center"
@@ -198,47 +281,25 @@ export default function PropertySection() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Category Filter */}
-            <div>
-              <h4 className="font-medium mb-2 text-sm">Category</h4>
-              <div className="flex flex-wrap gap-2">
-                {categories.map((category: { id: string; name: string }) => (
-                  <button
-                    key={category.id}
-                    onClick={() => handleCategoryChange(category.id)}
-                    className={`px-3 py-1 text-xs rounded-full ${
-                      selectedCategory === category.id
-                        ? "bg-primary text-white"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    }`}
-                  >
-                    {category.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             {/* Property Type Filter */}
             <div>
               <h4 className="font-medium mb-2 text-sm">Property Type</h4>
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => togglePropertyType("house")}
-                  className={`px-3 py-1 text-xs rounded-full ${
-                    propertyType.includes("house")
-                      ? "bg-primary text-white"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
+                  className={`px-3 py-1 text-xs rounded-full ${propertyType.includes("house")
+                    ? "bg-primary text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
                 >
                   House
                 </button>
                 <button
                   onClick={() => togglePropertyType("room")}
-                  className={`px-3 py-1 text-xs rounded-full ${
-                    propertyType.includes("room")
-                      ? "bg-primary text-white"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
+                  className={`px-3 py-1 text-xs rounded-full ${propertyType.includes("room")
+                    ? "bg-primary text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
                 >
                   Room
                 </button>
