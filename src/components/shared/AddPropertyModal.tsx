@@ -14,7 +14,7 @@ import { getPaymentTimeLabel, formatRentTime } from "@/utils/formatters";
 // Define the PropertyMapProps interface
 interface PropertyMapProps {
   initialPosition: [number, number];
-  onLocationSelect: (lat: number, lng: number) => void;
+  onLocationSelect: (lat: number, lng: number, address?: string) => void;
 }
 
 // Import Leaflet dynamically to avoid SSR issues
@@ -324,7 +324,7 @@ const AddPropertyModal = ({
     };
   }, [previewImages]);
 
-  const handleLocationSelect = (lat: number, lng: number) => {
+  const handleLocationSelect = (lat: number, lng: number, address?: string) => {
     // Don't update if lat and lng are 0 (default values)
     if (lat === 0 && lng === 0) return;
 
@@ -333,10 +333,12 @@ const AddPropertyModal = ({
       return;
     }
 
+    // Update the form with latitude, longitude and address if provided
     setFormData({
       ...formData,
       latitude: lat.toString(),
       longitude: lng.toString(),
+      ...(address && { address }) // Only update address if it was provided
     });
 
     // Clear location error when user selects a location
