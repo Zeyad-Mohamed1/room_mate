@@ -235,14 +235,14 @@ export default function PropertySection() {
                   : "bg-gray-100 hover:bg-gray-200 text-gray-700"
                   }`}
               >
-                <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center mb-2 shadow-sm">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center mb-2 shadow-sm">
                   {category.icon ? (
                     <Image
                       src={category.icon}
-                      width={30}
-                      height={30}
+                      width={48}
+                      height={48}
                       alt={category.name}
-                      className="object-cover"
+                      className="object-cover w-full h-full"
                     />
                   ) : (
                     <span className="text-xl font-bold text-primary">

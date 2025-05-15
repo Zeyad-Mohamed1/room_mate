@@ -2,30 +2,10 @@ import { Suspense } from "react";
 import WelcomeDialog from "@/components/shared/WelcomeDialog";
 import PropertySection from "./components/home/PropertySection";
 import Footer from "./components/home/Footer";
-import prisma from "@/lib/prisma";
 import { HomePageProvider } from "./components/home/HomePageContext";
 
-// Fetch categories for the header filter
-async function getCategories() {
-  try {
-    const categories = await prisma.category.findMany({
-      orderBy: {
-        name: "asc",
-      },
-    });
-
-    return categories.map((category) => ({
-      id: category.id,
-      name: category.name,
-    }));
-  } catch (error) {
-    console.error("Error fetching categories:", error);
-    return [];
-  }
-}
 
 export default async function Home() {
-  const categories = await getCategories();
 
   return (
     <HomePageProvider>
