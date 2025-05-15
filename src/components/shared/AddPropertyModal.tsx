@@ -2262,7 +2262,7 @@ const AddPropertyModal = ({
         </div>
 
         {/* Fixed navigation footer with higher z-index */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 flex justify-between z-[9999] shadow-lg">
+        {/* <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 flex justify-between z-[9999] shadow-lg">
           <NavigationButton
             type="prev"
             onClick={step > 1 ? prevStep : onClose}
@@ -2274,7 +2274,7 @@ const AddPropertyModal = ({
             disabled={isCreating || isUpdating}
             isLoading={isCreating || isUpdating}
           />
-        </div>
+        </div> */}
       </div>
     </div>
   );
